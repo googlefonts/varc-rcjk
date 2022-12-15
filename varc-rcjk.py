@@ -176,7 +176,7 @@ async def decomposeLayer(layer, rcjkfont, trans=Identity):
                                           t.scaleX, t.scaleY,
                                           t.skewX, t.skewY,
                                           t.tCenterX, t.tCenterY)
-        composedTrans = componentTrans.transform(trans) # XXX ?
+        composedTrans = trans.transform(componentTrans)
 
         componentGlyph = await loadGlyph(component.name, rcjkfont)
 
