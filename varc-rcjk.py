@@ -253,7 +253,7 @@ async def buildFlatFont(rcjkfont, glyphs):
 
 async def main(args):
     rcjk_path = args[0]
-    count = 100000000
+    count = 10000000
     if len(args) > 1:
         count = int(args[1])
 
@@ -269,6 +269,11 @@ async def main(args):
         # Check that glyph does not mix contours and components
         for layer in glyph.masters.values():
             assert not layer.glyph.path.coordinates or not layer.glyph.components
+
+        if glyph.unicodes:
+            count -= 1
+            if not count:
+                break
 
     font = await buildFlatFont(rcjkfont, glyphs)
 
