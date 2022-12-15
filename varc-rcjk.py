@@ -252,16 +252,23 @@ async def buildFlatFont(rcjkfont, glyphs):
 
 
 async def main(args):
-    rcjk_path = args[0]
     count = 10000000
-    if len(args) > 1:
-        count = int(args[1])
+
+    rcjk_path = args[0]
+    glyphset = None
+    if len(args) == 2:
+        try:
+            count = int(args[1])
+        except ValueError:
+            glyphset = args[1:]
+    else:
+        glyphset = args[1:]
 
     rcjkfont = RCJKBackend.fromPath(rcjk_path)
     revCmap = await rcjkfont.getReverseCmap()
 
     glyphs = {}
-    for glyphname in list(revCmap.keys())[:count]:
+    for glyphname in list(revCmap.keys())[:count] if not glyphset else glyphset:
 
         glyph = await loadGlyph(glyphname, rcjkfont)
         glyphs[glyphname] = glyph
