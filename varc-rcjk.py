@@ -5,6 +5,7 @@
 # PackedPath objects have a drawPoints method that takes a point pen
 
 
+from fontTools.misc.roundTools import otRound
 from fontTools.fontBuilder import FontBuilder
 from fontTools.pens.cu2quPen import Cu2QuMultiPen
 from fontTools.pens.ttGlyphPen import TTGlyphPen
@@ -14,6 +15,7 @@ from fontTools.pens.transformPen import TransformPointPen
 from fontTools.misc.transform import Transform, Identity
 from fontTools.varLib.models import normalizeLocation, VariationModel
 from fontTools.varLib.errors import VariationModelError
+from fontTools.ttLib.tables.TupleVariation import TupleVariation
 import argparse
 import asyncio
 from dataclasses import asdict
@@ -218,6 +220,7 @@ async def buildFlatFont(rcjkfont, glyphs):
     fb = await createFontBuilder(rcjkfont, "rcjk-flat", "regular", charGlyphs)
 
     fbGlyphs = {}
+    fbVariations = {}
     glyphRecordings = {}
     for glyph in charGlyphs.values():
         axes = {axis.name:(axis.minValue,axis.defaultValue,axis.maxValue) for axis in glyph.axes}
@@ -226,7 +229,8 @@ async def buildFlatFont(rcjkfont, glyphs):
         for loc,layer in glyph.masters.items():
 
             loc = dictifyLocation(loc)
-            loc = normalizeLocation(loc, axes, dropZeroes=True)
+            loc = normalizeLocation(loc, axes)
+            loc = {k:v for k,v in loc.items() if v != 0}
             loc = tuplifyLocation(loc)
 
             rspen = RecordingPen()
@@ -241,11 +245,41 @@ async def buildFlatFont(rcjkfont, glyphs):
         cu2quPen = Cu2QuMultiPen(pens, 1)
         # Pass all shapes through Cu2QuMultiPen
         replayCommandsThroughCu2QuMultiPen(shapes.values(), cu2quPen)
+        pens = [pen.glyph() for pen in pens]
 
+        # default master
         assert () == list(shapes.keys())[0]
-        fbGlyphs[glyph.name] = pens[0].glyph()
+        fbGlyphs[glyph.name] = pens[0]
 
+        # variations
+
+        fbVariations[glyph.name] = []
+
+        masterCoords = [pen.coordinates for pen in pens]
+
+        masterLocs = list(dictifyLocation(l)
+                          for l in glyph.masters.keys())
+        masterLocs = [normalizeLocation(m, axes)
+                      for m in masterLocs]
+
+        model = VariationModel(masterLocs, list(axes.keys()))
+
+        deltas, supports = model.getDeltasAndSupports(masterCoords)
+
+        for delta, support in zip(deltas[1:], supports[1:]):
+
+            delta.extend([(0,0), (0,0), (0,0), (0,0)]) # TODO Phantom points
+            tv = TupleVariation(support, delta)
+            fbVariations[glyph.name].append(tv)
+
+
+    fvarAxes = []
+    for axis in rcjkfont.designspace['axes']:
+        fvarAxes.append((axis['tag'], axis['minValue'], axis['defaultValue'], axis['maxValue'], axis['name']))
+
+    fb.setupFvar(fvarAxes, [])
     fb.setupGlyf(fbGlyphs)
+    fb.setupGvar(fbVariations)
     fb.save("flat.ttf")
 
 
