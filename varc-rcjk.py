@@ -316,7 +316,7 @@ async def main(args):
             if not count:
                 break
 
-    font = await buildFlatFont(rcjkfont, glyphs)
+    await buildFlatFont(rcjkfont, glyphs)
 
 if __name__ == "__main__":
     import sys
