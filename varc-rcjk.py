@@ -251,24 +251,27 @@ async def buildFlatFont(rcjkfont, glyphs):
 
 
 
-async def main(verify=True):
-    parser = argparse.ArgumentParser()
-    parser.add_argument("rcjk_path")
-    args = parser.parse_args()
-    rcjkfont = RCJKBackend.fromPath(args.rcjk_path)
+async def main(args):
+    rcjk_path = args[0]
+    count = 100000000
+    if len(args) > 1:
+        count = int(args[1])
+
+    rcjkfont = RCJKBackend.fromPath(rcjk_path)
     revCmap = await rcjkfont.getReverseCmap()
 
     glyphs = {}
-    for glyphname in ['uniAC00', 'uniAC01']:#revCmap.keys():
+    for glyphname in list(revCmap.keys())[:count]:
+
         glyph = await loadGlyph(glyphname, rcjkfont)
         glyphs[glyphname] = glyph
 
-        if verify:
-            # Check that glyph does not mix contours and components
-            for layer in glyph.masters.values():
-                assert not layer.glyph.path.coordinates or not layer.glyph.components
+        # Check that glyph does not mix contours and components
+        for layer in glyph.masters.values():
+            assert not layer.glyph.path.coordinates or not layer.glyph.components
 
     font = await buildFlatFont(rcjkfont, glyphs)
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    import sys
+    asyncio.run(main(sys.argv[1:]))
