@@ -6,6 +6,7 @@
 
 
 from fontTools.misc.roundTools import otRound
+from fontTools.ttLib.tables._g_l_y_f import GlyphCoordinates
 from fontTools.fontBuilder import FontBuilder
 from fontTools.pens.cu2quPen import Cu2QuMultiPen
 from fontTools.pens.ttGlyphPen import TTGlyphPen
@@ -16,6 +17,7 @@ from fontTools.misc.transform import Transform, Identity
 from fontTools.varLib.models import normalizeLocation, VariationModel
 from fontTools.varLib.errors import VariationModelError
 from fontTools.ttLib.tables.TupleVariation import TupleVariation
+from functools import partial
 import argparse
 import asyncio
 from dataclasses import asdict
@@ -264,7 +266,9 @@ async def buildFlatFont(rcjkfont, glyphs):
 
         model = VariationModel(masterLocs, list(axes.keys()))
 
-        deltas, supports = model.getDeltasAndSupports(masterCoords)
+        deltas, supports = model.getDeltasAndSupports(masterCoords,
+            round=partial(GlyphCoordinates.__round__, round=round)
+        )
 
         for delta, support in zip(deltas[1:], supports[1:]):
 
