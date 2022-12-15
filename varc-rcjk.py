@@ -6,7 +6,7 @@
 
 
 from fontTools.misc.roundTools import otRound
-from fontTools.ttLib.tables._g_l_y_f import GlyphCoordinates
+from fontTools.ttLib.tables._g_l_y_f import Glyph, GlyphCoordinates
 from fontTools.fontBuilder import FontBuilder
 from fontTools.pens.cu2quPen import Cu2QuMultiPen
 from fontTools.pens.ttGlyphPen import TTGlyphPen
@@ -30,7 +30,7 @@ from fontra_rcjk.backend_fs import RCJKBackend
 async def createFontBuilder(rcjkfont, family_name, style, glyphs):
     upem = await rcjkfont.getUnitsPerEm()
 
-    glyphOrder = list(glyphs.keys())
+    glyphOrder = ['.notdef'] + list(glyphs.keys())
     cmap = {}
     for glyph in glyphs.values():
         for unicode in glyph.unicodes:
@@ -38,8 +38,8 @@ async def createFontBuilder(rcjkfont, family_name, style, glyphs):
             #assert unicode not in cmap, (hex(unicode), glyphname, cmap[unicode])
             cmap[unicode] = glyph.name
 
-    metrics = {}
-    for glyphname in glyphOrder:
+    metrics = {'.notdef': (upem, 0)}
+    for glyphname in glyphOrder[1:]:
         glyph = await rcjkfont.getGlyph(glyphname)
         assert glyph.sources[0].name == "<default>"
         assert glyph.sources[0].layerName == "foreground"
@@ -221,7 +221,7 @@ async def buildFlatFont(rcjkfont, glyphs):
 
     fb = await createFontBuilder(rcjkfont, "rcjk-flat", "regular", charGlyphs)
 
-    fbGlyphs = {}
+    fbGlyphs = {'.notdef': Glyph()}
     fbVariations = {}
     glyphRecordings = {}
     for glyph in charGlyphs.values():
