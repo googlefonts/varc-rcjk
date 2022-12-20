@@ -75,6 +75,8 @@ def dictifyLocation(loc):
 
 async def loadGlyph(glyphname, rcjkfont):
     glyph = await rcjkfont.getGlyph(glyphname)
+    if hasattr(glyph, "masters"):
+        return glyph
 
     glyph.masters = {}
 
