@@ -372,7 +372,6 @@ async def buildVarcFont(rcjkfont, glyphs):
 
         # Build glyph data
 
-
         layer = next(iter(glyph.masters.values()))
         for component in layer.glyph.components:
             componentGlyph = await loadGlyph(component.name, rcjkfont)
