@@ -364,7 +364,7 @@ async def buildVarcFont(rcjkfont, glyphs):
                     points.append((fl2fi(coord, 14), 0))
                 points.extend([(t.translateX, t.translateY),
                                (fl2fi(t.rotation / 180., 14), 0),
-                               (fl2fi(t.scaleX, 12), fl2fi(t.scaleY, 12)),
+                               (fl2fi(t.scaleX, 10), fl2fi(t.scaleY, 10)),
                                (fl2fi(t.skewX, 14), fl2fi(t.skewY, 14)),
                                (t.tCenterX, t.tCenterY)])
 
@@ -401,8 +401,8 @@ async def buildVarcFont(rcjkfont, glyphs):
             transform = struct.pack(">hhhhhhhhh",
                                     otRound(t.translateX), otRound(t.translateY),
                                     fl2fi(t.rotation / 180., 14),
-                                    fl2fi(t.scaleX, 12), fl2fi(t.scaleY, 12),
-                                    fl2fi(t.skewX, 14), fl2fi(t.skewY, 14),
+                                    fl2fi(t.scaleX, 10), fl2fi(t.scaleY, 10),
+                                    fl2fi(t.skewX / 180., 14), fl2fi(t.skewY / 180., 14),
                                     otRound(t.tCenterX), otRound(t.tCenterY))
 
             flag = struct.pack(">H", flag)
