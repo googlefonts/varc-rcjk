@@ -365,7 +365,7 @@ async def buildVarcFont(rcjkfont, glyphs):
                 points.extend([(t.translateX, t.translateY),
                                (fl2fi(t.rotation / 180., 14), 0),
                                (fl2fi(t.scaleX, 10), fl2fi(t.scaleY, 10)),
-                               (fl2fi(t.skewX, 14), fl2fi(t.skewY, 14)),
+                               (fl2fi(t.skewX / 180., 14), fl2fi(t.skewY / 180., 14)),
                                (t.tCenterX, t.tCenterY)])
 
             masterPoints.append(GlyphCoordinates(points))
