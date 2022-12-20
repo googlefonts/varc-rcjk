@@ -274,6 +274,8 @@ async def buildFlatGlyph(rcjkfont, glyph, axesNameToTag=None):
 
 async def buildFlatFont(rcjkfont, glyphs):
 
+    print("Building flat.ttf")
+
     charGlyphs = {g:v for g,v in glyphs.items() if v.unicodes}
 
     fb = await createFontBuilder(rcjkfont, "rcjk", "flat", charGlyphs)
@@ -306,6 +308,8 @@ async def closureGlyphs(rcjkfont, glyphs):
                     changed = True
 
 async def buildVarcFont(rcjkfont, glyphs):
+
+    print("Building varc.ttf")
 
     await closureGlyphs(rcjkfont, glyphs)
 
@@ -483,8 +487,8 @@ async def main(args):
             if not count:
                 break
 
-    #await buildFlatFont(rcjkfont, glyphs)
     await buildVarcFont(rcjkfont, glyphs)
+    await buildFlatFont(rcjkfont, glyphs)
 
 if __name__ == "__main__":
     import sys
