@@ -215,7 +215,7 @@ def replayCommandsThroughCu2QuMultiPen(commands, cu2quPen):
         else:
             getattr(cu2quPen, opName)()
 
-async def buildFlatGlyph(rcjkfont, glyph, axesNameToTag):
+async def buildFlatGlyph(rcjkfont, glyph, axesNameToTag=None):
     axes = {axis.name:(axis.minValue,axis.defaultValue,axis.maxValue) for axis in glyph.axes}
 
     shapes = {}
@@ -264,7 +264,8 @@ async def buildFlatGlyph(rcjkfont, glyph, axesNameToTag):
     for delta, support in zip(deltas[1:], supports[1:]):
 
         delta.extend([(0,0), (0,0), (0,0), (0,0)]) # TODO Phantom points
-        support = {axesNameToTag[k]:v for k,v in support.items()}
+        if axesNameToTag is not None:
+            support = {axesNameToTag[k]:v for k,v in support.items()}
         tv = TupleVariation(support, delta)
         fbVariations.append(tv)
 
@@ -363,7 +364,7 @@ async def buildVarcFont(rcjkfont, glyphs):
                 for coord in coords.values():
                     points.append((fl2fi(coord, 14), 0))
                 points.extend([(t.translateX, t.translateY),
-                               (fl2fi((t.rotation % 360) / 180., 14), 0),
+                               (fl2fi(t.rotation / 180., 12), 0),
                                (fl2fi(t.scaleX, 10), fl2fi(t.scaleY, 10)),
                                (fl2fi(t.skewX / 180., 14), fl2fi(t.skewY / 180., 14)),
                                (t.tCenterX, t.tCenterY)])
@@ -399,7 +400,7 @@ async def buildVarcFont(rcjkfont, glyphs):
             axisValues = b''.join(struct.pack(">h", fl2fi(v, 14)) for v in coords.values())
             transform = struct.pack(">hhhhhhhhh",
                                     otRound(t.translateX), otRound(t.translateY),
-                                    fl2fi((t.rotation % 360) / 180., 14),
+                                    fl2fi(t.rotation / 180., 12),
                                     fl2fi(t.scaleX, 10), fl2fi(t.scaleY, 10),
                                     fl2fi(t.skewX / 180., 14), fl2fi(t.skewY / 180., 14),
                                     otRound(t.tCenterX), otRound(t.tCenterY))
@@ -434,6 +435,9 @@ async def buildVarcFont(rcjkfont, glyphs):
             for i,(x,y) in enumerate(delta):
                 if x == 32768: delta[i] = 32767,y
                 if y == 32768: delta[i] = x,32767
+
+            if any(x<-32768 or y<-32768 for x,y in delta):
+                print(glyph.name, delta)
 
             delta.extend([(0,0), (0,0), (0,0), (0,0)]) # TODO Phantom points
             support = {axesNameToTag[k]:v for k,v in support.items()}
