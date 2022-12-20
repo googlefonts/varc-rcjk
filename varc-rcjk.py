@@ -322,6 +322,7 @@ async def buildVarcFont(rcjkfont, glyphs):
     for i in range(maxAxes):
         tag = '%4d' % i
         fvarAxes.append((tag, 0, 0, 0, tag))
+    fvarTags = [axis[0] for axis in fvarAxes]
 
 
     fb = await createFontBuilder(rcjkfont, "rcjk", "varc", glyphs)
@@ -333,7 +334,7 @@ async def buildVarcFont(rcjkfont, glyphs):
         axes = {axis.name:(axis.minValue,axis.defaultValue,axis.maxValue) for axis in glyph.axes}
         axesMap = {}
         for i,name in enumerate(axes.keys()):
-            axesMap[name] = '%4d' % i
+            axesMap[name] = '%4d' % i if name not in fvarTags else name
 
         if glyph.masters[()].glyph.path.coordinates:
             fbGlyphs[glyph.name], fbVariations[glyph.name] = await buildFlatGlyph(rcjkfont, glyph, axesMap)
@@ -388,9 +389,9 @@ async def buildVarcFont(rcjkfont, glyphs):
             gid = struct.pack(">H", reverseGlyphMap[component.name])
 
             axisIndices = []
-            axesList = list(componentAxes.keys())
-            for coord in coords:
-                axisIndices.append(fvarAxesOffset + axesList.index(coord))
+            for i,coord in enumerate(coords):
+                name = '%4d' % i if coord not in fvarTags else coord
+                axisIndices.append(fvarTags.index(name))
 
             if all(v <= 255 for v in axisIndices):
                 axisIndices = b''.join(struct.pack(">B", v) for v in axisIndices)
