@@ -164,11 +164,10 @@ class MathRecording:
         self.value = out
         return self
 
-async def decomposeLayer(layer, rcjkfont, trans=Identity):
+async def decomposeLayer(layer, rcjkfont):
 
     pen = RecordingPointPen()
-    tpen = TransformPointPen(pen, trans)
-    layer.glyph.path.drawPoints(tpen)
+    layer.glyph.path.drawPoints(pen)
     value = pen.value
 
     for component in layer.glyph.components:
@@ -179,7 +178,6 @@ async def decomposeLayer(layer, rcjkfont, trans=Identity):
                                           t.scaleX, t.scaleY,
                                           t.skewX, t.skewY,
                                           t.tCenterX, t.tCenterY)
-        composedTrans = trans.transform(componentTrans)
 
         componentGlyph = await loadGlyph(component.name, rcjkfont)
 
@@ -195,13 +193,18 @@ async def decomposeLayer(layer, rcjkfont, trans=Identity):
 
         model = VariationModel(masterLocs, list(axes.keys()))
 
-        masterShapes = [await decomposeLayer(compLayer, rcjkfont, composedTrans)
+        masterShapes = [await decomposeLayer(compLayer, rcjkfont)
                         for compLayer in componentGlyph.masters.values()]
 
         loc = normalizeLocation(component.location, axes)
         componentShape = model.interpolateFromMasters(loc, masterShapes)
 
-        value.extend(componentShape.value)
+        pen = RecordingPointPen()
+        tpen = TransformPointPen(pen, componentTrans)
+        rPen = RecordingPointPen()
+        rPen.value = componentShape.value
+        rPen.replay(tpen)
+        value.extend(pen.value)
 
     return MathRecording(value)
 
