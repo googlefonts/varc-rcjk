@@ -252,6 +252,7 @@ async def buildFlatGlyph(rcjkfont, glyph, axesNameToTag=None):
         round=partial(GlyphCoordinates.__round__, round=round)
     )
 
+    fbGlyph.coordinates = deltas[0]
     for delta, support in zip(deltas[1:], supports[1:]):
 
         delta.extend([(0,0), (0,0), (0,0), (0,0)]) # TODO Phantom points
