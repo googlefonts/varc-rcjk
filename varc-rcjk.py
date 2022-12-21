@@ -14,6 +14,7 @@ from fontTools.pens.recordingPen import RecordingPen, RecordingPointPen
 from fontTools.pens.pointPen import PointToSegmentPen
 from fontTools.pens.transformPen import TransformPointPen
 from fontTools.misc.transform import Transform, Identity
+from fontTools.misc.vector import Vector
 from fontTools.misc.fixedTools import floatToFixed as fl2fi
 from fontTools.varLib.models import normalizeLocation, VariationModel
 from fontTools.varLib.errors import VariationModelError
@@ -165,22 +166,67 @@ async def decomposeGlyph(glyph, rcjkfont, location=(), trans=Identity):
 
     model = VariationModel(masterLocs, list(axes.keys()))
 
-    masterShapes = [await decomposeLayer(compLayer, rcjkfont, trans)
-                    for compLayer in glyph.masters.values()]
+
+    # Interpolate outline
+
+    masterShapes = [await decomposeLayer(layer, rcjkfont, trans, shallow=True)
+                    for layer in glyph.masters.values()]
 
     loc = normalizeLocation(location, axes)
     shape = model.interpolateFromMasters(loc, masterShapes)
 
     value.extend(shape.value)
 
+    # Interpolate components
+
+    numComps = len(next(iter(glyph.masters.values())).glyph.components)
+    for compIndex in range(numComps):
+        compTransforms = []
+        compLocations = []
+        name = None
+        for layer in glyph.masters.values():
+            compName = layer.glyph.components[compIndex].name
+            if name is not None:
+                assert name == compName
+            name = compName
+            compTransforms.append(layer.glyph.components[compIndex].transformation)
+            compLocations.append(layer.glyph.components[compIndex].location)
+
+        locKeys = list(compLocations[0].keys())
+        locationVectors = []
+        for locations in compLocations:
+            assert locKeys == list(locations.keys())
+            locationVectors.append(Vector(locations.values()))
+        transformVectors = []
+        for t in compTransforms:
+            transformVectors.append(Vector((t.translateX, t.translateY,
+                                            t.rotation,
+                                            t.scaleX, t.scaleY,
+                                            t.skewX, t.skewY,
+                                            t.tCenterX, t.tCenterY)))
+
+        locationVector = model.interpolateFromMasters(loc, locationVectors)
+        transformVector = model.interpolateFromMasters(loc, transformVectors)
+
+        location = {k:v for k,v in zip(locKeys, locationVector)}
+        transform = composeTransform(*transformVector)
+        composedTrans = trans.transform(transform)
+
+        componentGlyph = await loadGlyph(name, rcjkfont)
+        shape = await decomposeGlyph(componentGlyph, rcjkfont, location, composedTrans)
+        value.extend(shape.value)
+
     return MathRecording(value)
 
-async def decomposeLayer(layer, rcjkfont, trans=Identity):
+async def decomposeLayer(layer, rcjkfont, trans=Identity, shallow=False):
 
     pen = RecordingPointPen()
     tpen = TransformPointPen(pen, trans)
     layer.glyph.path.drawPoints(tpen)
     value = pen.value
+
+    if shallow:
+        return MathRecording(value)
 
     for component in layer.glyph.components:
 
