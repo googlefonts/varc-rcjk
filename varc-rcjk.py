@@ -395,19 +395,27 @@ async def buildVarcFont(rcjkfont, glyphs):
         data = bytearray(struct.pack(">hhhhh", -2, b[0], b[1], b[2], b[3]))
         masterPoints = []
 
-        have_translate = False
+        have_translateX = False
+        have_translateY = False
         have_rotation = False
-        have_scale = False
-        have_skew = False
-        have_tcenter = False
+        have_scaleX = False
+        have_scaleY = False
+        have_skewX = False
+        have_skewY = False
+        have_tcenterX = False
+        have_tcenterY = False
         for loc,layer in glyph.masters.items():
             for component in layer.glyph.components:
                 t = component.transformation
-                if t.translateX or t.translateY:    have_translate = True
-                if t.rotation:                      have_rotation = True
-                if t.scaleX != 1 or t.scaleY != 1:  have_scale = True
-                if t.skewX or t.skewY:              have_skew = True
-                if t.tCenterX or t.tCenterY:        have_tcenter = True
+                if t.translateX:   have_translateX = True
+                if t.translateY:   have_translateY = True
+                if t.rotation:     have_rotation = True
+                if t.scaleX != 1:  have_scaleX = True
+                if t.scaleY != 1:  have_scaleY = True
+                if t.skewX:        have_skewX = True
+                if t.skewY:        have_skewY = True
+                if t.tCenterX:     have_tcenterX = True
+                if t.tCenterY:     have_tcenterY = True
 
         for loc,layer in glyph.masters.items():
 
@@ -423,11 +431,11 @@ async def buildVarcFont(rcjkfont, glyphs):
 
                 for coord in coords.values():
                     points.append((fl2fi(coord, 14), 0))
-                if have_translate:  points.append((t.translateX, t.translateY))
-                if have_rotation:   points.append((fl2fi(t.rotation / 180., 12), 0))
-                if have_scale:      points.append((fl2fi(t.scaleX, 10), fl2fi(t.scaleY, 10)))
-                if have_skew:       points.append((fl2fi(t.skewX / 180., 14), fl2fi(t.skewY / 180., 14)))
-                if have_tcenter:    points.append((t.tCenterX, t.tCenterY))
+                if have_translateX or have_translateY:  points.append((t.translateX, t.translateY))
+                if have_rotation:                       points.append((fl2fi(t.rotation / 180., 12), 0))
+                if have_scaleX or have_scaleY:          points.append((fl2fi(t.scaleX, 10), fl2fi(t.scaleY, 10)))
+                if have_skewX or have_skewY:            points.append((fl2fi(t.skewX / 180., 14), fl2fi(t.skewY / 180., 14)))
+                if have_tcenterX or have_tcenterY:      points.append((t.tCenterX, t.tCenterY))
 
             masterPoints.append(GlyphCoordinates(points))
 
@@ -461,24 +469,36 @@ async def buildVarcFont(rcjkfont, glyphs):
 
             axisValues = b''.join(struct.pack(">h", fl2fi(v, 14)) for v in coords.values())
 
-            translate = rotation = scale = skew = tcenter = b""
-            if have_translate:
-                translate = struct.pack(">hh", otRound(t.translateX), otRound(t.translateY))
-                flag |= (1<<3) | (1<<4)
+            translateX = translateY = rotation = scaleX = scaleY = skewX = skewY = tcenterX = tcenterY = b""
+            if have_translateX:
+                translateX = struct.pack(">h", otRound(t.translateX))
+                flag |= (1<<3)
+            if have_translateY:
+                translateY = struct.pack(">h", otRound(t.translateY))
+                flag |= (1<<4)
             if have_rotation:
                 rotation = struct.pack(">h", fl2fi(t.rotation / 180., 12))
                 flag |= (1<<5)
-            if have_scale:
-                scale = struct.pack(">hh", fl2fi(t.scaleX, 10), fl2fi(t.scaleY, 10))
-                flag |= (1<<6) | (1<<7)
-            if have_skew:
-                skew = struct.pack(">hh", fl2fi(t.skewX / 180., 14), fl2fi(t.skewY / 180., 14))
-                flag |= (1<<8) | (1<<9)
-            if have_tcenter:
-                tcenter = struct.pack(">hh", otRound(t.tCenterX), otRound(t.tCenterY))
-                flag |= (1<<10) | (1<<11)
+            if have_scaleX:
+                scaleX = struct.pack(">h", fl2fi(t.scaleX, 10))
+                flag |= (1<<6)
+            if have_scaleY:
+                scaleY = struct.pack(">h", fl2fi(t.scaleY, 10))
+                flag |= (1<<7)
+            if have_skewX:
+                skewX = struct.pack(">h", fl2fi(t.skewX / 180., 14))
+                flag |= (1<<8)
+            if have_skewY:
+                skewY = struct.pack(">h", fl2fi(t.skewY / 180., 14))
+                flag |= (1<<9)
+            if have_tcenterX:
+                tcenterX = struct.pack(">h", otRound(t.tCenterX))
+                flag |= (1<<10)
+            if have_tcenterY:
+                tcenterY = struct.pack(">h", otRound(t.tCenterY))
+                flag |= (1<<11)
 
-            transform = translate + rotation + scale + skew + tcenter
+            transform = translateX + translateY + rotation + scaleX + scaleY + skewX + skewY + tcenterX + tcenterY
 
             flag = struct.pack(">H", flag)
 
