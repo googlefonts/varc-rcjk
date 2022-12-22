@@ -406,22 +406,22 @@ async def buildVarcFont(rcjkfont, glyphs):
         data = bytearray(struct.pack(">hhhhh", -2, b[0], b[1], b[2], b[3]))
         masterPoints = []
 
-        componentHave = []
+        transformHave = []
         layer = next(iter(glyph.masters.values()))
         for component in layer.glyph.components:
-            componentHave.append(ComponentHave())
+            transformHave.append(ComponentHave())
         for layer in glyph.masters.values():
             for i,component in enumerate(layer.glyph.components):
                 t = component.transformation
-                if t.translateX:   componentHave[i].have_translateX = True
-                if t.translateY:   componentHave[i].have_translateY = True
-                if t.rotation:     componentHave[i].have_rotation = True
-                if t.scaleX != 1:  componentHave[i].have_scaleX = True
-                if t.scaleY != 1:  componentHave[i].have_scaleY = True
-                if t.skewX:        componentHave[i].have_skewX = True
-                if t.skewY:        componentHave[i].have_skewY = True
-                if t.tCenterX:     componentHave[i].have_tcenterX = True
-                if t.tCenterY:     componentHave[i].have_tcenterY = True
+                if t.translateX:   transformHave[i].have_translateX = True
+                if t.translateY:   transformHave[i].have_translateY = True
+                if t.rotation:     transformHave[i].have_rotation = True
+                if t.scaleX != 1:  transformHave[i].have_scaleX = True
+                if t.scaleY != 1:  transformHave[i].have_scaleY = True
+                if t.skewX:        transformHave[i].have_skewX = True
+                if t.skewY:        transformHave[i].have_skewY = True
+                if t.tCenterX:     transformHave[i].have_tcenterX = True
+                if t.tCenterY:     transformHave[i].have_tcenterY = True
 
         for loc,layer in glyph.masters.items():
 
@@ -438,7 +438,7 @@ async def buildVarcFont(rcjkfont, glyphs):
                 for coord in coords.values():
                     points.append((fl2fi(coord, 14), 0))
 
-                c = componentHave[ci]
+                c = transformHave[ci]
                 if c.have_translateX or c.have_translateY:  points.append((t.translateX, t.translateY))
                 if c.have_rotation:                         points.append((fl2fi(t.rotation / 180., 12), 0))
                 if c.have_scaleX or c.have_scaleY:          points.append((fl2fi(t.scaleX, 10), fl2fi(t.scaleY, 10)))
@@ -477,7 +477,7 @@ async def buildVarcFont(rcjkfont, glyphs):
 
             axisValues = b''.join(struct.pack(">h", fl2fi(v, 14)) for v in coords.values())
 
-            c = componentHave[ci]
+            c = transformHave[ci]
 
             translateX = translateY = rotation = scaleX = scaleY = skewX = skewY = tcenterX = tcenterY = b""
             if c.have_translateX:
