@@ -415,6 +415,8 @@ async def buildVarcFont(rcjkfont, glyphs):
         transformHave = []
         coordinateHave = []
         layer = next(iter(glyph_masters.values()))
+        defaultComponents = layer.glyph.components
+        coordinateVaries = [False] * len(defaultComponents)
         for component in layer.glyph.components:
             transformHave.append(ComponentHave())
             coordinateHave.append(set())
@@ -433,6 +435,8 @@ async def buildVarcFont(rcjkfont, glyphs):
                 for j,c in enumerate(component.location.values()):
                     if c:
                         coordinateHave[i].add(j)
+                if component.location != defaultComponents[i].location:
+                    coordinateVaries[i] = True
 
         for loc,layer in glyph_masters.items():
 
@@ -446,9 +450,10 @@ async def buildVarcFont(rcjkfont, glyphs):
 
                 t = component.transformation
 
-                for j,coord in enumerate(coords.values()):
-                    if j in coordinateHave[ci]:
-                        points.append((fl2fi(coord, 14), 0))
+                if coordinateVaries[ci]:
+                    for j,coord in enumerate(coords.values()):
+                        if j in coordinateHave[ci]:
+                            points.append((fl2fi(coord, 14), 0))
 
                 c = transformHave[ci]
                 if c.have_translateX or c.have_translateY:  points.append((t.translateX, t.translateY))
@@ -471,7 +476,7 @@ async def buildVarcFont(rcjkfont, glyphs):
 
             t = component.transformation
 
-            flag = 1<<13
+            flag = 0
 
             numAxes = struct.pack(">B", len(coordinateHave[ci]))
             gid = struct.pack(">H", reverseGlyphMap[component.name])
@@ -481,6 +486,9 @@ async def buildVarcFont(rcjkfont, glyphs):
                 if i not in coordinateHave[ci]: continue
                 name = '%4d' % i if coord not in fvarTags else coord
                 axisIndices.append(fvarTags.index(name))
+
+            if coordinateVaries[ci]:
+                flag |= 1<<13
 
             if all(v <= 255 for v in axisIndices):
                 axisIndices = b''.join(struct.pack(">B", v) for v in axisIndices)
