@@ -394,6 +394,21 @@ async def buildVarcFont(rcjkfont, glyphs):
         b = 0, 0, 0, 0
         data = bytearray(struct.pack(">hhhhh", -2, b[0], b[1], b[2], b[3]))
         masterPoints = []
+
+        have_translate = False
+        have_rotation = False
+        have_scale = False
+        have_skew = False
+        have_tcenter = False
+        for loc,layer in glyph.masters.items():
+            for component in layer.glyph.components:
+                t = component.transformation
+                if t.translateX or t.translateY:    have_translate = True
+                if t.rotation:                      have_rotation = True
+                if t.scaleX != 1 or t.scaleY != 1:  have_scale = True
+                if t.skewX or t.skewY:              have_skew = True
+                if t.tCenterX or t.tCenterY:        have_tcenter = True
+
         for loc,layer in glyph.masters.items():
 
             points = []
@@ -408,11 +423,11 @@ async def buildVarcFont(rcjkfont, glyphs):
 
                 for coord in coords.values():
                     points.append((fl2fi(coord, 14), 0))
-                points.extend([(t.translateX, t.translateY),
-                               (fl2fi(t.rotation / 180., 12), 0),
-                               (fl2fi(t.scaleX, 10), fl2fi(t.scaleY, 10)),
-                               (fl2fi(t.skewX / 180., 14), fl2fi(t.skewY / 180., 14)),
-                               (t.tCenterX, t.tCenterY)])
+                if have_translate:  points.append((t.translateX, t.translateY))
+                if have_rotation:   points.append((fl2fi(t.rotation / 180., 12), 0))
+                if have_scale:      points.append((fl2fi(t.scaleX, 10), fl2fi(t.scaleY, 10)))
+                if have_skew:       points.append((fl2fi(t.skewX / 180., 14), fl2fi(t.skewY / 180., 14)))
+                if have_tcenter:    points.append((t.tCenterX, t.tCenterY))
 
             masterPoints.append(GlyphCoordinates(points))
 
@@ -428,9 +443,7 @@ async def buildVarcFont(rcjkfont, glyphs):
 
             t = component.transformation
 
-            flag = 0
-            for bit in (3, 4, 5, 6, 7, 8, 9, 10, 11, 13):
-                flag |= (1<<bit)
+            flag = 1<<13
 
             numAxes = struct.pack(">B", len(coords))
             gid = struct.pack(">H", reverseGlyphMap[component.name])
@@ -447,12 +460,25 @@ async def buildVarcFont(rcjkfont, glyphs):
                 flag |= (1<<1)
 
             axisValues = b''.join(struct.pack(">h", fl2fi(v, 14)) for v in coords.values())
-            transform = struct.pack(">hhhhhhhhh",
-                                    otRound(t.translateX), otRound(t.translateY),
-                                    fl2fi(t.rotation / 180., 12),
-                                    fl2fi(t.scaleX, 10), fl2fi(t.scaleY, 10),
-                                    fl2fi(t.skewX / 180., 14), fl2fi(t.skewY / 180., 14),
-                                    otRound(t.tCenterX), otRound(t.tCenterY))
+
+            translate = rotation = scale = skew = tcenter = b""
+            if have_translate:
+                translate = struct.pack(">hh", otRound(t.translateX), otRound(t.translateY))
+                flag |= (1<<3) | (1<<4)
+            if have_rotation:
+                rotation = struct.pack(">h", fl2fi(t.rotation / 180., 12))
+                flag |= (1<<5)
+            if have_scale:
+                scale = struct.pack(">hh", fl2fi(t.scaleX, 10), fl2fi(t.scaleY, 10))
+                flag |= (1<<6) | (1<<7)
+            if have_skew:
+                skew = struct.pack(">hh", fl2fi(t.skewX / 180., 14), fl2fi(t.skewY / 180., 14))
+                flag |= (1<<8) | (1<<9)
+            if have_tcenter:
+                tcenter = struct.pack(">hh", otRound(t.tCenterX), otRound(t.tCenterY))
+                flag |= (1<<10) | (1<<11)
+
+            transform = translate + rotation + scale + skew + tcenter
 
             flag = struct.pack(">H", flag)
 
