@@ -80,9 +80,11 @@ async def buildVarcFont(rcjkfont, glyphs):
 
         coordinateVaries, coordinateHave, transformHave = analyzeComponents(glyph_masters)
 
+        #
         # Build glyph data
+        #
 
-        layer = next(iter(glyph_masters.values()))
+        layer = next(iter(glyph_masters.values())) # Default master
         for ci,component in enumerate(layer.glyph.components):
             rec = await buildComponentRecord(rcjkfont,
                                              component,
@@ -97,10 +99,13 @@ async def buildVarcFont(rcjkfont, glyphs):
         ttGlyph.data = bytes(data)
         fbGlyphs[glyph.name] = ttGlyph
 
-        # Build variation
+        #
+        # Build variations
+        #
+
+        # Build master points
 
         masterPoints = []
-
         for loc,layer in glyph_masters.items():
 
             points = []
@@ -115,11 +120,12 @@ async def buildVarcFont(rcjkfont, glyphs):
 
             masterPoints.append(GlyphCoordinates(points))
 
+        # Get deltas and supports
+
         masterLocs = list(dictifyLocation(l)
                           for l in glyph_masters.keys())
         masterLocs = [normalizeLocation(m, axes)
                       for m in masterLocs]
-
         masterLocs = [{axesMap[k]:v for k,v in loc.items()}
                       for loc in masterLocs]
 
@@ -128,6 +134,8 @@ async def buildVarcFont(rcjkfont, glyphs):
         deltas, supports = model.getDeltasAndSupports(masterPoints,
             round=partial(GlyphCoordinates.__round__, round=round)
         )
+
+        # Build tuple variations
 
         fbVariations[glyph.name] = []
         for delta, support in zip(deltas[1:], supports[1:]):
