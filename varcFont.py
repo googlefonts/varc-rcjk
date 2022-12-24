@@ -77,23 +77,8 @@ async def buildVarcFont(rcjkfont, glyphs):
         transforms = {}
         b = 0, 0, 0, 0
         data = bytearray(struct.pack(">hhhhh", -2, b[0], b[1], b[2], b[3]))
-        masterPoints = []
 
         coordinateVaries, coordinateHave, transformHave = analyzeComponents(glyph_masters)
-
-        for loc,layer in glyph_masters.items():
-
-            points = []
-            for ci,component in enumerate(layer.glyph.components):
-
-                pts = await buildComponentPoints(rcjkfont,
-                                                 component,
-                                                 coordinateVaries[ci],
-                                                 coordinateHave[ci],
-                                                 transformHave[ci])
-                points.extend(pts)
-
-            masterPoints.append(GlyphCoordinates(points))
 
         # Build glyph data
 
@@ -113,6 +98,22 @@ async def buildVarcFont(rcjkfont, glyphs):
         fbGlyphs[glyph.name] = ttGlyph
 
         # Build variation
+
+        masterPoints = []
+
+        for loc,layer in glyph_masters.items():
+
+            points = []
+            for ci,component in enumerate(layer.glyph.components):
+
+                pts = await buildComponentPoints(rcjkfont,
+                                                 component,
+                                                 coordinateVaries[ci],
+                                                 coordinateHave[ci],
+                                                 transformHave[ci])
+                points.extend(pts)
+
+            masterPoints.append(GlyphCoordinates(points))
 
         masterLocs = list(dictifyLocation(l)
                           for l in glyph_masters.keys())
