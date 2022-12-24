@@ -86,7 +86,7 @@ async def buildComponentPoints(rcjkfont, component,
 
 async def buildComponentRecord(rcjkfont, component,
                                coordinateVaries, coordinateHave, transformHave,
-                               reverseGlyphMap):
+                               fvarTags, reverseGlyphMap):
 
     componentGlyph = await rcjkfont.getGlyph(component.name)
 
@@ -250,6 +250,7 @@ async def buildVarcFont(rcjkfont, glyphs):
                                              coordinateVaries[ci],
                                              coordinateHave[ci],
                                              transformHave[ci],
+                                             fvarTags,
                                              reverseGlyphMap)
             data.extend(rec)
 
