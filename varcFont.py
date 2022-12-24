@@ -73,16 +73,14 @@ async def buildVarcFont(rcjkfont, glyphs):
 
         # VarComposite glyph...
 
-        coordinates = {}
-        transforms = {}
-        b = 0, 0, 0, 0
-        data = bytearray(struct.pack(">hhhhh", -2, b[0], b[1], b[2], b[3]))
-
         coordinateVaries, coordinateHave, transformHave = analyzeComponents(glyph_masters)
 
         #
         # Build glyph data
         #
+
+        b = 0, 0, 0, 0
+        data = bytearray(struct.pack(">hhhhh", -2, b[0], b[1], b[2], b[3])) # Glyph header
 
         layer = next(iter(glyph_masters.values())) # Default master
         for ci,component in enumerate(layer.glyph.components):
