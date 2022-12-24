@@ -59,7 +59,9 @@ async def buildVarcFont(rcjkfont, glyphs):
 
     fbGlyphs = {'.notdef': Glyph()}
     fbVariations = {}
+
     for glyph in glyphs.values():
+
         glyph_masters = glyphMasters(glyph)
 
         axes = {axis.name:(axis.minValue,axis.defaultValue,axis.maxValue) for axis in glyph.axes}
