@@ -1,3 +1,4 @@
+
 def tuplifyLocation(loc):
     return tuple(sorted(loc.items()))
 
@@ -17,4 +18,3 @@ def glyphMasters(glyph):
         masters[locationTuple] = layersByName[source.layerName]
 
     return masters
-
