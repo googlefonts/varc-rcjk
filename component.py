@@ -3,7 +3,7 @@ from fontTools.misc.fixedTools import floatToFixed as fl2fi
 from fontTools.varLib.models import normalizeLocation
 import struct
 
-class ComponentHave:
+class TransformHave:
     have_translateX = False
     have_translateY = False
     have_rotation = False
@@ -22,7 +22,7 @@ def analyzeComponents(glyph_masters):
     defaultComponents = layer.glyph.components
     coordinateVaries = [False] * len(defaultComponents)
     for component in layer.glyph.components:
-        transformHave.append(ComponentHave())
+        transformHave.append(TransformHave())
         coordinateHave.append(set())
     for layer in glyph_masters.values():
         for i,component in enumerate(layer.glyph.components):
