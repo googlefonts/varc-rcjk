@@ -49,10 +49,9 @@ def analyzeComponents(glyph_masters):
     return cas
 
 
-async def buildComponentPoints(rcjkfont, component, componentAnalysis):
+def buildComponentPoints(rcjkfont, component, componentGlyph, componentAnalysis):
     ca = componentAnalysis
 
-    componentGlyph = await rcjkfont.getGlyph(component.name)
     componentAxes = {axis.name:(axis.minValue,axis.defaultValue,axis.maxValue)
                      for axis in componentGlyph.axes}
     coords = component.location
@@ -76,11 +75,9 @@ async def buildComponentPoints(rcjkfont, component, componentAnalysis):
 
     return points
 
-async def buildComponentRecord(rcjkfont, component, componentAnalysis,
-                               fvarTags, reverseGlyphMap):
+def buildComponentRecord(component, componentGlyph, componentAnalysis,
+                         fvarTags, reverseGlyphMap):
     ca = componentAnalysis
-
-    componentGlyph = await rcjkfont.getGlyph(component.name)
 
     componentAxes = {axis.name:(axis.minValue,axis.defaultValue,axis.maxValue)
                      for axis in componentGlyph.axes}
