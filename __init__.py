@@ -5,6 +5,7 @@ from font import createFontBuilder
 from rcjkTools import *
 from flatFont import buildFlatFont
 from varcFont import buildVarcFont
+from smartiesFont import buildSmartiesFont
 
 import argparse
 import asyncio
@@ -42,6 +43,7 @@ async def main(args):
         for layer in glyph_masters.values():
             assert not layer.glyph.path.coordinates or not layer.glyph.components
 
+    await buildSmartiesFont(rcjkfont, glyphs)
     await buildVarcFont(rcjkfont, glyphs)
     await buildFlatFont(rcjkfont, glyphs)
 

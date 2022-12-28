@@ -43,16 +43,18 @@ def setupFvarAxes(rcjkfont, glyphs):
     return fvarAxes
 
 
-async def buildVarcFont(rcjkfont, glyphs):
+async def buildVarcFont(rcjkfont, glyphs, style="varc"):
 
-    print("Building varc.ttf")
+    print("Building %s.ttf" % style)
+
+    glyphs = glyphs.copy ()
 
     await closureGlyphs(rcjkfont, glyphs)
 
     fvarAxes = setupFvarAxes(rcjkfont, glyphs)
     fvarTags = [axis[0] for axis in fvarAxes]
 
-    fb = await createFontBuilder(rcjkfont, "rcjk", "varc", glyphs)
+    fb = await createFontBuilder(rcjkfont, "rcjk", style, glyphs)
     reverseGlyphMap = fb.font.getReverseGlyphMap()
 
     fbGlyphs = {'.notdef': Glyph()}
@@ -151,4 +153,4 @@ async def buildVarcFont(rcjkfont, glyphs):
     fb.setupGlyf(fbGlyphs)
     fb.setupGvar(fbVariations)
     fb.font.recalcBBoxes = False
-    fb.save("varc.ttf")
+    fb.save("%s.ttf" % style)
