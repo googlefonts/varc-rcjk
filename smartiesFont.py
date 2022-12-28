@@ -146,7 +146,7 @@ async def buildSmartiesFont(rcjkfont, glyphs):
         for j in range(k):
             v[j,:] += defaultMaster
 
-        # Save learned locations
+        # Save mapping from old locations to new, learned, locations
         learned[dcName] = {}
         for location,vec in zip(locations,u):
             learned[dcName][tuplifyLocation(location)] = {"% 4d"%(i+1):l for i,l in enumerate(vec.tolist()[0])}
@@ -189,16 +189,13 @@ async def buildSmartiesFont(rcjkfont, glyphs):
 
                 t = newMasterRow[:9]
                 newMasterRow = newMasterRow[9:]
-                component.transformation = type(referenceComponent.transformation)()
-                component.transformation.translateX = t[0]
-                component.transformation.translateY = t[1]
-                component.transformation.rotation = t[2]
-                component.transformation.scaleX = t[3]
-                component.transformation.scaleY = t[4]
-                component.transformation.skewX = t[5]
-                component.transformation.skewY = t[6]
-                component.transformation.tCenterX = t[7]
-                component.transformation.tCenterY = t[8]
+                component.transformation = type(referenceComponent.transformation)(
+                    translateX = t[0], translateY = t[1],
+                    rotation = t[2],
+                    scaleX = t[3], scaleY = t[4],
+                    skewX = t[5], skewY = t[6],
+                    tCenterX = t[7], tCenterY = t[8]
+                )
             assert(not newMasterRow)
 
         glyphs[glyph.name] = newGlyph
@@ -214,4 +211,5 @@ async def buildSmartiesFont(rcjkfont, glyphs):
 
                 component.location = learned[component.name][tuplifyLocation(component.location)]
 
+    # Build it!
     await buildVarcFont(rcjkfont, glyphs, "smarties")
