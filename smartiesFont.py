@@ -6,13 +6,14 @@ from fontTools.misc.vector import Vector
 import numpy as np
 
 from collections import defaultdict
+from copy import deepcopy
 
 
 async def buildSmartiesFont(rcjkfont, glyphs):
 
     print("Learning smarties.ttf")
 
-    #glyphs = glyphs.copy ()
+    glyphs = deepcopy(glyphs)
 
     await closureGlyphs(rcjkfont, glyphs)
 
@@ -44,6 +45,7 @@ async def buildSmartiesFont(rcjkfont, glyphs):
                 dcLocations[component.name].append(component.location)
 
     # Learn
+    learned = {}
     for dcName,locations in dcLocations.items():
 
         glyph = await rcjkfont.getGlyph(dcName)
@@ -124,7 +126,92 @@ async def buildSmartiesFont(rcjkfont, glyphs):
         v = np.diag(s) * v
         del s
 
+        # v contains the list of "master"-like features discovered, one in each row, and
+        # u contains the "location" of those, one row per sample.
 
+        # Normalize range of each "axis" to 0-1; This extracts default master and deltas
+        defaultMaster = np.zeros(np.shape(v[0]))
+        for j in range(k):
+            minV = np.min(u[:,j])
+            maxV = np.max(u[:,j])
+            diff = maxV - minV
 
+            u[:,j] -= minV
+            if diff:
+                u[:,j] /= diff
+
+            defaultMaster += v[j,:] * minV
+            v[j,:] *= diff
+        # Convert deltas to masters
+        for j in range(k):
+            v[j,:] += defaultMaster
+
+        # Save learned locations
+        learned[dcName] = {}
+        for location,vec in zip(locations,u):
+            learned[dcName][tuplifyLocation(location)] = {"% 4d"%(i+1):l for i,l in enumerate(vec.tolist()[0])}
+
+        # Setup new axes
+        newAxes = []
+        for j in range(k):
+            tag = "% 4d" % (j+1)
+            newAxis = type(glyph.axes[0])(tag, 0., 0., 1.)
+            newAxes.append(newAxis)
+
+        # Construct new glyph
+
+        newGlyph = type(glyph)(glyph.name)
+        newGlyph.axes = newAxes
+        for i,newMasterRow in enumerate(np.concatenate((defaultMaster, v), 0)):
+            newMasterRow = newMasterRow.tolist()[0]
+
+            name = "master%d" % i
+            newSource = type(glyph.sources[0])(name if i else "<default>", name if i else "foreground")
+
+            newLocation = {"% 4d" % i: 1} if i else {}
+            newSource.location = newLocation
+
+            newLayerGlyph = type(glyph.layers[0].glyph)()
+            newLayer = type(glyph.layers[0])(name if i else "foreground", newLayerGlyph)
+
+            newGlyph.sources.append(newSource)
+            newGlyph.layers.append(newLayer)
+
+            # Fill in layer components
+            for compIndex in range(numComps):
+                referenceComponent = glyph.layers[0].glyph.components[compIndex]
+                component = type(referenceComponent)(referenceComponent.name)
+                newLayerGlyph.components.append(component)
+
+                locationLen = len(referenceComponent.location)
+                component.location = {tag:l for tag,l in zip(referenceComponent.location.keys(), newMasterRow[:locationLen])}
+                newMasterRow = newMasterRow[locationLen:]
+
+                t = newMasterRow[:9]
+                newMasterRow = newMasterRow[9:]
+                component.transformation = type(referenceComponent.transformation)()
+                component.transformation.translateX = t[0]
+                component.transformation.translateY = t[1]
+                component.transformation.rotation = t[2]
+                component.transformation.scaleX = t[3]
+                component.transformation.scaleY = t[4]
+                component.transformation.skewX = t[5]
+                component.transformation.skewY = t[6]
+                component.transformation.tCenterX = t[7]
+                component.transformation.tCenterY = t[8]
+            assert(not newMasterRow)
+
+        glyphs[glyph.name] = newGlyph
+
+    # Update component references
+    for glyph in glyphs.values():
+
+        glyph_masters = glyphMasters(glyph)
+        for layer in glyph_masters.values():
+
+            for component in layer.glyph.components:
+                if component.name not in learned: continue
+
+                component.location = learned[component.name][tuplifyLocation(component.location)]
 
     await buildVarcFont(rcjkfont, glyphs, "smarties")
