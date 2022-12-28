@@ -106,7 +106,7 @@ async def buildSmartiesFont(rcjkfont, glyphs):
         # Find number of "masters" to keep
         first = s[0] # Largest singular value
         k = len(s)
-        while k and s[k - 1] < first / 500:
+        while k and s[k - 1] < first / 1000:
             k -= 1
 
         # Truncate rank to k
@@ -116,9 +116,9 @@ async def buildSmartiesFont(rcjkfont, glyphs):
 
         reconst = np.round(u * np.diag(s) * v)
         error = reconst - mat
-        maxError = np.max(error)
+        maxError = np.max(np.abs(error))
         meanSqError = np.mean(np.square(error))
-        print("Num samples %d num masters %d max error %d mean-squared error %g" % (len(samples), k, maxError, meanSqError))
+        print("%s: #samples %d #orig masters %d #masters %d max-err %g mean^2-err %g" % (dcName, len(samples), len(location), k, maxError, meanSqError))
 
         # Multiply extracted features by singular values and be done with those values.
         v = np.diag(s) * v
