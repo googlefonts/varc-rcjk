@@ -87,11 +87,11 @@ async def buildVarcFont(rcjkfont, glyphs):
 
         layer = next(iter(glyph_masters.values())) # Default master
         for ci,component in enumerate(layer.glyph.components):
-            rec = await buildComponentRecord(rcjkfont,
-                                             component,
-                                             componentAnalysis[ci],
-                                             fvarTags,
-                                             reverseGlyphMap)
+            rec = buildComponentRecord(component,
+                                       glyphs[component.name],
+                                       componentAnalysis[ci],
+                                       fvarTags,
+                                       reverseGlyphMap)
             data.extend(rec)
 
         ttGlyph = Glyph()
@@ -110,9 +110,10 @@ async def buildVarcFont(rcjkfont, glyphs):
             points = []
             for ci,component in enumerate(layer.glyph.components):
 
-                pts = await buildComponentPoints(rcjkfont,
-                                                 component,
-                                                 componentAnalysis[ci])
+                pts = buildComponentPoints(rcjkfont,
+                                           component,
+                                           glyphs[component.name],
+                                           componentAnalysis[ci])
                 points.extend(pts)
 
             masterPoints.append(GlyphCoordinates(points))
