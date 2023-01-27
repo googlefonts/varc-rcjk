@@ -34,7 +34,7 @@ async def createFontBuilder(rcjkfont, family_name, style, glyphs):
     fb.setupCharacterMap(cmap)
     fb.setupHorizontalMetrics(metrics)
     ascent = int(upem * .8) # TODO
-    descent = int(upem * .2) # TODO
+    descent = -int(upem * .2) # TODO
     fb.setupHorizontalHeader(ascent=ascent, descent=descent)
     #fb.setupOS2(sTypoAscender=os2.sTypoAscender, usWinAscent=os2.usWinAscent, usWinDescent=os2.usWinDescent)
     fb.setupPost(keepGlyphNames=False)
