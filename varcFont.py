@@ -39,12 +39,8 @@ class ComponentHave:
     have_tcenterX = False
     have_tcenterY = False
 
-async def buildVarcFont(rcjkfont, glyphs):
 
-    print("Building varc.ttf")
-
-    await closureGlyphs(rcjkfont, glyphs)
-
+def setupFvarAxes(rcjkfont, glyphs):
     fvarAxes = []
     for axis in rcjkfont.designspace['axes']:
         fvarAxes.append((axis['tag'], axis['minValue'], axis['defaultValue'], axis['maxValue'], axis['name']))
@@ -54,12 +50,20 @@ async def buildVarcFont(rcjkfont, glyphs):
         axes = {axis.name:(axis.minValue,axis.defaultValue,axis.maxValue) for axis in glyph.axes}
         maxAxes = max(maxAxes, len(axes))
 
-    fvarAxesOffset = len(fvarAxes)
     for i in range(maxAxes):
         tag = '%4d' % i
         fvarAxes.append((tag, -1, 0, 1, tag))
-    fvarTags = [axis[0] for axis in fvarAxes]
 
+    return fvarAxes
+
+async def buildVarcFont(rcjkfont, glyphs):
+
+    print("Building varc.ttf")
+
+    await closureGlyphs(rcjkfont, glyphs)
+
+    fvarAxes = setupFvarAxes(rcjkfont, glyphs)
+    fvarTags = [axis[0] for axis in fvarAxes]
 
     fb = await createFontBuilder(rcjkfont, "rcjk", "varc", glyphs)
     reverseGlyphMap = fb.font.getReverseGlyphMap()
