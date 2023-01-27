@@ -318,6 +318,7 @@ async def buildVarcFont(rcjkfont, glyphs):
         axes = {axis.name:(axis.minValue,axis.defaultValue,axis.maxValue) for axis in glyph.axes}
         maxAxes = max(maxAxes, len(axes))
 
+    fvarAxesOffset = len(fvarAxes)
     for i in range(maxAxes):
         tag = '%4d' % i
         fvarAxes.append((tag, 0, 0, 0, tag))
@@ -389,7 +390,7 @@ async def buildVarcFont(rcjkfont, glyphs):
             axisIndices = []
             axesList = list(componentAxes.keys())
             for coord in coords:
-                axisIndices.append(axesList.index(coord))
+                axisIndices.append(fvarAxesOffset + axesList.index(coord))
 
             if all(v <= 255 for v in axisIndices):
                 axisIndices = b''.join(struct.pack(">B", v) for v in axisIndices)
