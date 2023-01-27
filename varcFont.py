@@ -57,6 +57,33 @@ def setupFvarAxes(rcjkfont, glyphs):
     return fvarAxes
 
 
+async def buildComponentPoints(rcjkfont, component,
+                               coordinateVaries, coordinateHave, transformHave):
+
+    componentGlyph = await rcjkfont.getGlyph(component.name)
+    componentAxes = {axis.name:(axis.minValue,axis.defaultValue,axis.maxValue)
+                     for axis in componentGlyph.axes}
+    coords = component.location
+    coords = normalizeLocation(coords, componentAxes)
+
+    t = component.transformation
+
+    points = []
+
+    if coordinateVaries:
+        for j,coord in enumerate(coords.values()):
+            if j in coordinateHave:
+                points.append((fl2fi(coord, 14), 0))
+
+    c = transformHave
+    if c.have_translateX or c.have_translateY:  points.append((t.translateX, t.translateY))
+    if c.have_rotation:                         points.append((fl2fi(t.rotation / 180., 12), 0))
+    if c.have_scaleX or c.have_scaleY:          points.append((fl2fi(t.scaleX, 10), fl2fi(t.scaleY, 10)))
+    if c.have_skewX or c.have_skewY:            points.append((fl2fi(t.skewX / 180., 14), fl2fi(t.skewY / 180., 14)))
+    if c.have_tcenterX or c.have_tcenterY:      points.append((t.tCenterX, t.tCenterY))
+
+    return points
+
 async def buildComponentRecord(rcjkfont, component,
                                coordinateVaries, coordinateHave, transformHave,
                                reverseGlyphMap):
@@ -204,25 +231,13 @@ async def buildVarcFont(rcjkfont, glyphs):
 
             points = []
             for ci,component in enumerate(layer.glyph.components):
-                componentGlyph = await rcjkfont.getGlyph(component.name)
-                componentAxes = {axis.name:(axis.minValue,axis.defaultValue,axis.maxValue)
-                                 for axis in componentGlyph.axes}
-                coords = component.location
-                coords = normalizeLocation(coords, componentAxes)
 
-                t = component.transformation
-
-                if coordinateVaries[ci]:
-                    for j,coord in enumerate(coords.values()):
-                        if j in coordinateHave[ci]:
-                            points.append((fl2fi(coord, 14), 0))
-
-                c = transformHave[ci]
-                if c.have_translateX or c.have_translateY:  points.append((t.translateX, t.translateY))
-                if c.have_rotation:                         points.append((fl2fi(t.rotation / 180., 12), 0))
-                if c.have_scaleX or c.have_scaleY:          points.append((fl2fi(t.scaleX, 10), fl2fi(t.scaleY, 10)))
-                if c.have_skewX or c.have_skewY:            points.append((fl2fi(t.skewX / 180., 14), fl2fi(t.skewY / 180., 14)))
-                if c.have_tcenterX or c.have_tcenterY:      points.append((t.tCenterX, t.tCenterY))
+                pts = await buildComponentPoints(rcjkfont,
+                                                 component,
+                                                 coordinateVaries[ci],
+                                                 coordinateHave[ci],
+                                                 transformHave[ci])
+                points.extend(pts)
 
             masterPoints.append(GlyphCoordinates(points))
 
