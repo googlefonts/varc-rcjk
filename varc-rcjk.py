@@ -166,6 +166,9 @@ class MathRecording:
 
 async def decomposeLayer(layer, rcjkfont):
 
+    if hasattr(layer, "shape"):
+        return layer.shape
+
     pen = RecordingPointPen()
     layer.glyph.path.drawPoints(pen)
     value = pen.value
@@ -206,7 +209,9 @@ async def decomposeLayer(layer, rcjkfont):
         rPen.replay(tpen)
         value.extend(pen.value)
 
-    return MathRecording(value)
+    shape = MathRecording(value)
+    layer.shape = shape
+    return shape
 
 
 def replayCommandsThroughCu2QuMultiPen(commands, cu2quPen):
