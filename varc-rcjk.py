@@ -13,7 +13,7 @@ from fontTools.pens.ttGlyphPen import TTGlyphPen
 from fontTools.pens.recordingPen import RecordingPen, RecordingPointPen
 from fontTools.pens.pointPen import PointToSegmentPen
 from fontTools.pens.transformPen import TransformPointPen
-from fontTools.misc.transform import Transform, Identity
+from fontTools.misc.transform import Transform
 from fontTools.misc.fixedTools import floatToFixed as fl2fi
 from fontTools.varLib.models import normalizeLocation, VariationModel
 from fontTools.varLib.errors import VariationModelError
