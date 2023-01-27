@@ -13,7 +13,7 @@ from fontTools.pens.ttGlyphPen import TTGlyphPen
 from fontTools.pens.recordingPen import RecordingPen, RecordingPointPen
 from fontTools.pens.pointPen import PointToSegmentPen
 from fontTools.pens.transformPen import TransformPointPen
-from fontTools.misc.transform import Transform
+from fontTools.misc.transform import Transform, Identity
 from fontTools.misc.fixedTools import floatToFixed as fl2fi
 from fontTools.varLib.models import normalizeLocation, VariationModel
 from fontTools.varLib.errors import VariationModelError
@@ -152,10 +152,11 @@ class MathRecording:
     def __iadd__(self, other):
         return self._iop(other, operator.add)
 
-async def decomposeLayer(layer, rcjkfont):
+async def decomposeLayer(layer, rcjkfont, trans=Identity):
 
     pen = RecordingPointPen()
-    layer.glyph.path.drawPoints(pen)
+    tpen = TransformPointPen(pen, trans)
+    layer.glyph.path.drawPoints(tpen)
     value = pen.value
 
     for component in layer.glyph.components:
@@ -166,6 +167,7 @@ async def decomposeLayer(layer, rcjkfont):
                                           t.scaleX, t.scaleY,
                                           t.skewX, t.skewY,
                                           t.tCenterX, t.tCenterY)
+        composedTrans = trans.transform(componentTrans)
 
         componentGlyph = await loadGlyph(component.name, rcjkfont)
 
@@ -181,18 +183,13 @@ async def decomposeLayer(layer, rcjkfont):
 
         model = VariationModel(masterLocs, list(axes.keys()))
 
-        masterShapes = [await decomposeLayer(compLayer, rcjkfont)
+        masterShapes = [await decomposeLayer(compLayer, rcjkfont, composedTrans)
                         for compLayer in componentGlyph.masters.values()]
 
         loc = normalizeLocation(component.location, axes)
         componentShape = model.interpolateFromMasters(loc, masterShapes)
 
-        pen = RecordingPointPen()
-        tpen = TransformPointPen(pen, componentTrans)
-        rPen = RecordingPointPen()
-        rPen.value = componentShape.value
-        rPen.replay(tpen)
-        value.extend(pen.value)
+        value.extend(componentShape.value)
 
     return MathRecording(value)
 
