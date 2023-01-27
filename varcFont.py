@@ -5,7 +5,6 @@ from component import *
 
 from fontTools.ttLib.tables._g_l_y_f import Glyph, GlyphCoordinates
 from fontTools.varLib.models import normalizeLocation, VariationModel
-from fontTools.varLib.errors import VariationModelError
 from fontTools.ttLib.tables.TupleVariation import TupleVariation
 from functools import partial
 import struct
