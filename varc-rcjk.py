@@ -457,6 +457,9 @@ async def buildVarcFont(rcjkfont, glyphs):
 
 
 async def main(args):
+
+    print("Loading glyphs")
+
     count = 10000000
 
     rcjk_path = args[0]
