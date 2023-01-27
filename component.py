@@ -83,8 +83,6 @@ async def buildComponentRecord(rcjkfont, component,
     coords = component.location
     coords = normalizeLocation(coords, componentAxes)
 
-    t = component.transformation
-
     flag = 0
 
     numAxes = struct.pack(">B", len(coordinateHave))
@@ -116,6 +114,8 @@ async def buildComponentRecord(rcjkfont, component,
     axisValues = b''.join(struct.pack(">h", fl2fi(v, 14)) for i,v in enumerate(coords.values()) if i in coordinateHave)
 
     c = transformHave
+
+    t = component.transformation
 
     translateX = translateY = rotation = scaleX = scaleY = skewX = skewY = tcenterX = tcenterY = b""
     if c.have_translateX:
