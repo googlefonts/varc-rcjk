@@ -10,22 +10,21 @@ from functools import partial
 import struct
 
 
+async def closureGlyph(rcjkfont, glyphs, glyph):
+    assert glyph.sources[0].name == "<default>"
+    assert glyph.sources[0].layerName == "foreground"
+    assert glyph.layers[0].name == "foreground"
+    layer = glyph.layers[0]
+    for component in layer.glyph.components:
+        if component.name not in glyphs:
+            componentGlyph = await rcjkfont.getGlyph(component.name)
+            glyphs[component.name] = componentGlyph
+            await closureGlyph(rcjkfont, glyphs, componentGlyph)
+
 async def closureGlyphs(rcjkfont, glyphs):
 
-    changed = True
-    while changed:
-        changed = False
-        for glyph in list(glyphs.values()):
-            assert glyph.sources[0].name == "<default>"
-            assert glyph.sources[0].layerName == "foreground"
-            assert glyph.layers[0].name == "foreground"
-            layer = glyph.layers[0]
-            for component in layer.glyph.components:
-                if component.name not in glyphs:
-                    componentGlyph = await rcjkfont.getGlyph(component.name)
-                    glyphs[component.name] = componentGlyph
-                    changed = True
-
+    for glyph in list(glyphs.values()):
+        await closureGlyph(rcjkfont, glyphs, glyph)
 
 def setupFvarAxes(rcjkfont, glyphs):
     fvarAxes = []
