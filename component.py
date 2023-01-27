@@ -132,8 +132,11 @@ def buildComponentRecord(component, componentGlyph, componentAnalysis,
         scaleX = struct.pack(">h", fl2fi(t.scaleX, 10))
         flag |= (1<<6)
     if c.have_scaleY:
-        scaleY = struct.pack(">h", fl2fi(t.scaleY, 10))
-        flag |= (1<<7)
+        if t.scaleY != t.scaleX:
+            scaleY = struct.pack(">h", fl2fi(t.scaleY, 10))
+            flag |= (1<<7)
+        else:
+            flag |= (1<<2)
     if c.have_skewX:
         skewX = struct.pack(">h", fl2fi(t.skewX / 180., 14))
         flag |= (1<<8)
