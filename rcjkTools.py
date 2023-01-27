@@ -15,6 +15,7 @@ def glyphMasters(glyph):
     masters = {}
     for source in glyph.sources:
         locationTuple = tuplifyLocation(source.location)
+        assert locationTuple not in masters
         masters[locationTuple] = layersByName[source.layerName]
 
     return masters
