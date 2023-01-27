@@ -313,21 +313,14 @@ async def buildVarcFont(rcjkfont, glyphs):
     for axis in rcjkfont.designspace['axes']:
         fvarAxes.append((axis['tag'], axis['minValue'], axis['defaultValue'], axis['maxValue'], axis['name']))
 
-    axesIndex = {}
+    maxAxes = 0
     for glyph in glyphs.values():
         axes = {axis.name:(axis.minValue,axis.defaultValue,axis.maxValue) for axis in glyph.axes}
-        for name,triple in axes.items():
-            if not any(name == item[4] or name == item[0] for item in fvarAxes):
-                tag = '%4d' % len(fvarAxes)
-                fvarAxes.append((tag, triple[0], triple[1], triple[2], name))
-            for i in range(len(fvarAxes)):
-                if name == fvarAxes[i][4] or name == fvarAxes[i][0]:
-                    axesIndex[name] = i
-                    break
-    axesNameToTag = {}
-    for axis in fvarAxes:
-        axesNameToTag[axis[4]] = axis[0]
-        axesNameToTag[axis[0]] = axis[0]
+        maxAxes = max(maxAxes, len(axes))
+
+    for i in range(maxAxes):
+        tag = '%4d' % i
+        fvarAxes.append((tag, 0, 0, 0, tag))
 
 
     fb = await createFontBuilder(rcjkfont, "rcjk", "varc", glyphs)
@@ -337,9 +330,12 @@ async def buildVarcFont(rcjkfont, glyphs):
     fbVariations = {}
     for glyph in glyphs.values():
         axes = {axis.name:(axis.minValue,axis.defaultValue,axis.maxValue) for axis in glyph.axes}
+        axesMap = {}
+        for i,name in enumerate(axes.keys()):
+            axesMap[name] = '%4d' % i
 
         if glyph.masters[()].glyph.path.coordinates:
-            fbGlyphs[glyph.name], fbVariations[glyph.name] = await buildFlatGlyph(rcjkfont, glyph, axesNameToTag)
+            fbGlyphs[glyph.name], fbVariations[glyph.name] = await buildFlatGlyph(rcjkfont, glyph, axesMap)
             continue
 
         # VarComposite glyph...
@@ -390,7 +386,11 @@ async def buildVarcFont(rcjkfont, glyphs):
             numAxes = struct.pack(">B", len(coords))
             gid = struct.pack(">H", reverseGlyphMap[component.name])
 
-            axisIndices = [axesIndex[name] for name in coords.keys()]
+            axisIndices = []
+            axesList = list(componentAxes.keys())
+            for coord in coords:
+                axisIndices.append(axesList.index(coord))
+
             if all(v <= 255 for v in axisIndices):
                 axisIndices = b''.join(struct.pack(">B", v) for v in axisIndices)
             else:
@@ -422,6 +422,9 @@ async def buildVarcFont(rcjkfont, glyphs):
         masterLocs = [normalizeLocation(m, axes)
                       for m in masterLocs]
 
+        masterLocs = [{axesMap[k]:v for k,v in loc.items()}
+                      for loc in masterLocs]
+
         model = VariationModel(masterLocs, list(axes.keys()))
 
         deltas, supports = model.getDeltasAndSupports(masterPoints,
@@ -436,11 +439,7 @@ async def buildVarcFont(rcjkfont, glyphs):
                 if x == 32768: delta[i] = 32767,y
                 if y == 32768: delta[i] = x,32767
 
-            if any(x<-32768 or y<-32768 for x,y in delta):
-                print(glyph.name, delta)
-
             delta.extend([(0,0), (0,0), (0,0), (0,0)]) # TODO Phantom points
-            support = {axesNameToTag[k]:v for k,v in support.items()}
             tv = TupleVariation(support, delta)
             fbVariations[glyph.name].append(tv)
 
