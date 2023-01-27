@@ -153,6 +153,28 @@ class MathRecording:
     def __iadd__(self, other):
         return self._iop(other, operator.add)
 
+async def decomposeGlyph(glyph, rcjkfont, location=(), trans=Identity):
+    value = []
+    axes = {axis.name:(axis.minValue,axis.defaultValue,axis.maxValue)
+            for axis in glyph.axes}
+
+    masterLocs = list(dictifyLocation(l)
+                      for l in glyph.masters.keys())
+    masterLocs = [normalizeLocation(m, axes)
+                  for m in masterLocs]
+
+    model = VariationModel(masterLocs, list(axes.keys()))
+
+    masterShapes = [await decomposeLayer(compLayer, rcjkfont, trans)
+                    for compLayer in glyph.masters.values()]
+
+    loc = normalizeLocation(location, axes)
+    shape = model.interpolateFromMasters(loc, masterShapes)
+
+    value.extend(shape.value)
+
+    return MathRecording(value)
+
 async def decomposeLayer(layer, rcjkfont, trans=Identity):
 
     pen = RecordingPointPen()
@@ -172,25 +194,7 @@ async def decomposeLayer(layer, rcjkfont, trans=Identity):
 
         componentGlyph = await loadGlyph(component.name, rcjkfont)
 
-        # Interpolate component
-
-        axes = {axis.name:(axis.minValue,axis.defaultValue,axis.maxValue)
-                for axis in componentGlyph.axes}
-
-        masterLocs = list(dictifyLocation(l)
-                          for l in componentGlyph.masters.keys())
-        masterLocs = [normalizeLocation(m, axes)
-                      for m in masterLocs]
-
-        model = VariationModel(masterLocs, list(axes.keys()))
-
-        masterShapes = [await decomposeLayer(compLayer, rcjkfont, composedTrans)
-                        for compLayer in componentGlyph.masters.values()]
-
-        loc = normalizeLocation(component.location, axes)
-        componentShape = model.interpolateFromMasters(loc, masterShapes)
-
-        value.extend(componentShape.value)
+        value.extend((await decomposeGlyph(componentGlyph, rcjkfont, component.location, composedTrans)).value)
 
     return MathRecording(value)
 
