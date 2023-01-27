@@ -1,6 +1,6 @@
-
 from fontTools.misc.transform import Transform, Identity
 import math
+
 
 def composeTransform(
     translateX: float,

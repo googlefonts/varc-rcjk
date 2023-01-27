@@ -1,7 +1,7 @@
 import operator
 
-class MathRecording:
 
+class MathRecording:
     def __init__(self, value):
         self.value = list(value)
 
@@ -20,7 +20,7 @@ class MathRecording:
     def _iop(self, other, op):
         assert len(self.value) == len(other.value)
         out = []
-        for v,o in zip(self.value, other.value):
+        for v, o in zip(self.value, other.value):
             assert v[0] == o[0]
             if v[0] != "addPoint":
                 out.append(v)
@@ -28,7 +28,7 @@ class MathRecording:
             op0, (pt0, segmentType0, smooth0, name0), kwargs0 = v
             op1, (pt1, segmentType1, smooth1, name1), kwargs0 = o
             assert segmentType0 == segmentType1
-            #assert smooth0 == smooth1
+            # assert smooth0 == smooth1
             pt0 = (op(pt0[0], pt1[0]), op(pt0[1], pt1[1]))
             out.append((op0, (pt0, segmentType0, smooth0, name0), kwargs0))
 

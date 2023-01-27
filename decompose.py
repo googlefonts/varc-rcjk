@@ -7,25 +7,27 @@ from fontTools.pens.transformPen import TransformPointPen
 from fontTools.varLib.models import normalizeLocation, VariationModel
 from fontTools.misc.vector import Vector
 
+
 async def decomposeGlyph(glyph, rcjkfont, location=(), trans=Identity):
     value = []
-    axes = {axis.name:(axis.minValue,axis.defaultValue,axis.maxValue)
-            for axis in glyph.axes}
+    axes = {
+        axis.name: (axis.minValue, axis.defaultValue, axis.maxValue)
+        for axis in glyph.axes
+    }
 
     glyph_masters = glyphMasters(glyph)
 
-    masterLocs = list(dictifyLocation(l)
-                      for l in glyph_masters.keys())
-    masterLocs = [normalizeLocation(m, axes)
-                  for m in masterLocs]
+    masterLocs = list(dictifyLocation(l) for l in glyph_masters.keys())
+    masterLocs = [normalizeLocation(m, axes) for m in masterLocs]
 
     model = VariationModel(masterLocs, list(axes.keys()))
 
-
     # Interpolate outline
 
-    masterShapes = [await decomposeLayer(layer, rcjkfont, trans, shallow=True)
-                    for layer in glyph_masters.values()]
+    masterShapes = [
+        await decomposeLayer(layer, rcjkfont, trans, shallow=True)
+        for layer in glyph_masters.values()
+    ]
 
     loc = normalizeLocation(location, axes)
     shape = model.interpolateFromMasters(loc, masterShapes)
@@ -54,16 +56,26 @@ async def decomposeGlyph(glyph, rcjkfont, location=(), trans=Identity):
             locationVectors.append(Vector(locations.values()))
         transformVectors = []
         for t in compTransforms:
-            transformVectors.append(Vector((t.translateX, t.translateY,
-                                            t.rotation,
-                                            t.scaleX, t.scaleY,
-                                            t.skewX, t.skewY,
-                                            t.tCenterX, t.tCenterY)))
+            transformVectors.append(
+                Vector(
+                    (
+                        t.translateX,
+                        t.translateY,
+                        t.rotation,
+                        t.scaleX,
+                        t.scaleY,
+                        t.skewX,
+                        t.skewY,
+                        t.tCenterX,
+                        t.tCenterY,
+                    )
+                )
+            )
 
         locationVector = model.interpolateFromMasters(loc, locationVectors)
         transformVector = model.interpolateFromMasters(loc, transformVectors)
 
-        location = {k:v for k,v in zip(locKeys, locationVector)}
+        location = {k: v for k, v in zip(locKeys, locationVector)}
         transform = composeTransform(*transformVector)
         composedTrans = trans.transform(transform)
 
@@ -72,6 +84,7 @@ async def decomposeGlyph(glyph, rcjkfont, location=(), trans=Identity):
         value.extend(shape.value)
 
     return MathRecording(value)
+
 
 async def decomposeLayer(layer, rcjkfont, trans=Identity, shallow=False):
 
@@ -86,16 +99,27 @@ async def decomposeLayer(layer, rcjkfont, trans=Identity, shallow=False):
     for component in layer.glyph.components:
 
         t = component.transformation
-        componentTrans = composeTransform(t.translateX, t.translateY,
-                                          t.rotation,
-                                          t.scaleX, t.scaleY,
-                                          t.skewX, t.skewY,
-                                          t.tCenterX, t.tCenterY)
+        componentTrans = composeTransform(
+            t.translateX,
+            t.translateY,
+            t.rotation,
+            t.scaleX,
+            t.scaleY,
+            t.skewX,
+            t.skewY,
+            t.tCenterX,
+            t.tCenterY,
+        )
         composedTrans = trans.transform(componentTrans)
 
         componentGlyph = await rcjkfont.getGlyph(component.name)
 
-        value.extend((await decomposeGlyph(componentGlyph, rcjkfont, component.location, composedTrans)).value)
+        value.extend(
+            (
+                await decomposeGlyph(
+                    componentGlyph, rcjkfont, component.location, composedTrans
+                )
+            ).value
+        )
 
     return MathRecording(value)
-

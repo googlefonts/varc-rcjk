@@ -48,4 +48,5 @@ async def main(args):
 
 if __name__ == "__main__":
     import sys
+
     asyncio.run(main(sys.argv[1:]))
