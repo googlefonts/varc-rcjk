@@ -39,23 +39,23 @@ def analyzeComponents(glyph_masters, glyphAxes, publicAxes):
         for i, component in enumerate(layer.glyph.components):
             ca = cas[i]
             t = component.transformation
-            if t.translateX:
+            if otRound(t.translateX):
                 ca.transformHave.have_translateX = True
-            if t.translateY:
+            if otRound(t.translateY):
                 ca.transformHave.have_translateY = True
-            if t.rotation:
+            if fl2fi(t.rotation / 180.0, 12):
                 ca.transformHave.have_rotation = True
-            if t.scaleX != 1:
+            if fl2fi(t.scaleX, 10) != 1 << 10:
                 ca.transformHave.have_scaleX = True
-            if t.scaleY != 1:
+            if fl2fi(t.scaleY, 10) != 1 << 10:
                 ca.transformHave.have_scaleY = True
-            if t.skewX:
+            if fl2fi(t.skewX / 180.0, 12):
                 ca.transformHave.have_skewX = True
-            if t.skewY:
+            if fl2fi(t.skewY / 180.0, 12):
                 ca.transformHave.have_skewY = True
-            if t.tCenterX:
+            if otRound(t.tCenterX):
                 ca.transformHave.have_tcenterX = True
-            if t.tCenterY:
+            if otRound(t.tCenterY):
                 ca.transformHave.have_tcenterY = True
 
             for j, (tag, c) in enumerate(component.location.items()):
@@ -114,7 +114,7 @@ def buildComponentPoints(rcjkfont, component, componentGlyph, componentAnalysis)
     if c.have_scaleX or c.have_scaleY:
         points.append((fl2fi(t.scaleX, 10), fl2fi(t.scaleY, 10)))
     if c.have_skewX or c.have_skewY:
-        points.append((fl2fi(t.skewX / 180.0, 14), fl2fi(t.skewY / 180.0, 14)))
+        points.append((fl2fi(t.skewX / 180.0, 12), fl2fi(t.skewY / 180.0, 12)))
     if c.have_tcenterX or c.have_tcenterY:
         points.append((t.tCenterX, t.tCenterY))
 
@@ -197,10 +197,10 @@ def buildComponentRecord(
         else:
             flag |= 1 << 2
     if c.have_skewX:
-        skewX = struct.pack(">h", fl2fi(t.skewX / 180.0, 14))
+        skewX = struct.pack(">h", fl2fi(t.skewX / 180.0, 12))
         flag |= 1 << 8
     if c.have_skewY:
-        skewY = struct.pack(">h", fl2fi(t.skewY / 180.0, 14))
+        skewY = struct.pack(">h", fl2fi(t.skewY / 180.0, 12))
         flag |= 1 << 9
     if c.have_tcenterX:
         tcenterX = struct.pack(">h", otRound(t.tCenterX))
