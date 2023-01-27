@@ -45,17 +45,23 @@ def analyzeComponents(glyph_masters, glyphAxes, publicAxes):
             if t.skewY:        ca.transformHave.have_skewY = True
             if t.tCenterX:     ca.transformHave.have_tcenterX = True
             if t.tCenterY:     ca.transformHave.have_tcenterY = True
+
             for j,(tag,c) in enumerate(component.location.items()):
                 if c or tag in publicAxes:
                     ca.coordinateHaveReset.add(j)
                 if c != masterLocation.get(tag, 0) or (tag in publicAxes and tag not in glyphAxes):
                     ca.coordinateHaveOverlay.add(j)
-            if component.location != defaultComponents[i].location:
-                ca.coordinateVaries = True
 
     for ca in cas:
         ca.coordinatesReset = len(ca.coordinateHaveReset) <= len(ca.coordinateHaveOverlay)
         ca.coordinateHave = ca.coordinateHaveReset if ca.coordinatesReset else ca.coordinateHaveOverlay
+
+    for layer in glyph_masters.values():
+        for i,component in enumerate(layer.glyph.components):
+            ca = cas[i]
+            for j,(tag,c) in enumerate(component.location.items()):
+                if j in ca.coordinateHave and component.location[tag] != defaultComponents[i].location[tag]:
+                    ca.coordinateVaries = True
 
     return cas
 
