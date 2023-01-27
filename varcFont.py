@@ -49,6 +49,9 @@ async def buildVarcFont(rcjkfont, glyphs):
 
     await closureGlyphs(rcjkfont, glyphs)
 
+    publicAxes = set()
+    for axis in rcjkfont.designspace['axes']:
+        publicAxes.add(axis['tag'])
     fvarAxes = setupFvarAxes(rcjkfont, glyphs)
     fvarTags = [axis[0] for axis in fvarAxes]
 
@@ -76,7 +79,7 @@ async def buildVarcFont(rcjkfont, glyphs):
 
         # VarComposite glyph...
 
-        componentAnalysis = analyzeComponents(glyph_masters)
+        componentAnalysis = analyzeComponents(glyph_masters, publicAxes)
 
         #
         # Build glyph data

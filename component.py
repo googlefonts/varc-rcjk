@@ -20,7 +20,7 @@ class ComponentAnalysis:
         self.coordinateHave = set()
         self.transformHave = TransformHave()
 
-def analyzeComponents(glyph_masters):
+def analyzeComponents(glyph_masters, publicAxes):
 
     layer = next(iter(glyph_masters.values()))
     defaultComponents = layer.glyph.components
@@ -40,8 +40,8 @@ def analyzeComponents(glyph_masters):
             if t.skewY:        ca.transformHave.have_skewY = True
             if t.tCenterX:     ca.transformHave.have_tcenterX = True
             if t.tCenterY:     ca.transformHave.have_tcenterY = True
-            for j,c in enumerate(component.location.values()):
-                if c:
+            for j,(tag,c) in enumerate(component.location.items()):
+                if c or tag in publicAxes:
                     ca.coordinateHave.add(j)
             if component.location != defaultComponents[i].location:
                 ca.coordinateVaries = True
