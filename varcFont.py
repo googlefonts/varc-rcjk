@@ -68,6 +68,9 @@ async def buildVarcFont(rcjkfont, glyphs):
             axesMap[name] = '%4d' % i if name not in fvarTags else name
 
         if glyph_masters[()].glyph.path.coordinates:
+
+            # Simple glyph...
+
             fbGlyphs[glyph.name], fbVariations[glyph.name] = await buildFlatGlyph(rcjkfont, glyph, axesMap)
             continue
 
