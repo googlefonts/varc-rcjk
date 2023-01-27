@@ -57,7 +57,9 @@ def setupFvarAxes(rcjkfont, glyphs):
     return fvarAxes
 
 
-async def packComponentRecord(rcjkfont, component, coordinateVaries, coordinateHave, transformHave, reverseGlyphMap):
+async def buildComponentRecord(rcjkfont, component,
+                               coordinateVaries, coordinateHave, transformHave,
+                               reverseGlyphMap):
 
     componentGlyph = await rcjkfont.getGlyph(component.name)
 
@@ -228,12 +230,12 @@ async def buildVarcFont(rcjkfont, glyphs):
 
         layer = next(iter(glyph_masters.values()))
         for ci,component in enumerate(layer.glyph.components):
-            rec = await packComponentRecord(rcjkfont,
-                                            component,
-                                            coordinateVaries[ci],
-                                            coordinateHave[ci],
-                                            transformHave[ci],
-                                            reverseGlyphMap)
+            rec = await buildComponentRecord(rcjkfont,
+                                             component,
+                                             coordinateVaries[ci],
+                                             coordinateHave[ci],
+                                             transformHave[ci],
+                                             reverseGlyphMap)
             data.extend(rec)
 
         ttGlyph = Glyph()
