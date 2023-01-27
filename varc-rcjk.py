@@ -21,9 +21,9 @@ from fontTools.ttLib.tables.TupleVariation import TupleVariation
 from functools import partial
 import argparse
 import asyncio
-from dataclasses import asdict
 import struct
 import math
+import operator
 import sys
 from fontra_rcjk.backend_fs import RCJKBackend
 
@@ -128,7 +128,7 @@ class MathRecording:
 
         return MathRecording(out)
 
-    def __isub__(self, other):
+    def _iop(self, other, op):
         assert len(self.value) == len(other.value)
         out = []
         for v,o in zip(self.value, other.value):
@@ -140,29 +140,17 @@ class MathRecording:
             op1, (pt1, segmentType1, smooth1, name1), kwargs0 = o
             assert segmentType0 == segmentType1
             #assert smooth0 == smooth1
-            pt0 = (pt0[0] - pt1[0], pt0[1] - pt1[1])
+            pt0 = (op(pt0[0], pt1[0]), op(pt0[1], pt1[1]))
             out.append((op0, (pt0, segmentType0, smooth0, name0), kwargs0))
 
         self.value = out
         return self
+
+    def __isub__(self, other):
+        return self._iop(other, operator.sub)
 
     def __iadd__(self, other):
-        assert len(self.value) == len(other.value)
-        out = []
-        for v,o in zip(self.value, other.value):
-            assert v[0] == o[0]
-            if v[0] != "addPoint":
-                out.append(v)
-                continue
-            op0, (pt0, segmentType0, smooth0, name0), kwargs0 = v
-            op1, (pt1, segmentType1, smooth1, name1), kwargs0 = o
-            assert segmentType0 == segmentType1
-            #assert smooth0 == smooth1
-            pt0 = (pt0[0] + pt1[0], pt0[1] + pt1[1])
-            out.append((op0, (pt0, segmentType0, smooth0, name0), kwargs0))
-
-        self.value = out
-        return self
+        return self._iop(other, operator.add)
 
 async def decomposeLayer(layer, rcjkfont):
 
