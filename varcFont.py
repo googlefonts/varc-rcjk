@@ -79,7 +79,7 @@ async def buildVarcFont(rcjkfont, glyphs):
 
         # VarComposite glyph...
 
-        componentAnalysis = analyzeComponents(glyph_masters, publicAxes)
+        componentAnalysis = analyzeComponents(glyph_masters, axes, publicAxes)
 
         #
         # Build glyph data

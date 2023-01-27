@@ -1,6 +1,7 @@
 from fontTools.misc.roundTools import otRound
 from fontTools.misc.fixedTools import floatToFixed as fl2fi
 from fontTools.varLib.models import normalizeLocation
+from rcjkTools import *
 import struct
 
 class TransformHave:
@@ -17,17 +18,21 @@ class TransformHave:
 class ComponentAnalysis:
     def __init__(self):
         self.coordinateVaries = False
+        self.coordinateHaveOverlay = set()
+        self.coordinateHaveReset = set()
         self.coordinateHave = set()
+        self.coordinatesReset = None
         self.transformHave = TransformHave()
 
-def analyzeComponents(glyph_masters, publicAxes):
+def analyzeComponents(glyph_masters, glyphAxes, publicAxes):
 
     layer = next(iter(glyph_masters.values()))
     defaultComponents = layer.glyph.components
     cas = []
     for component in layer.glyph.components:
         cas.append(ComponentAnalysis())
-    for layer in glyph_masters.values():
+    for masterLocationTuple, layer in glyph_masters.items():
+        masterLocation = dictifyLocation(masterLocationTuple)
         for i,component in enumerate(layer.glyph.components):
             ca = cas[i]
             t = component.transformation
@@ -42,9 +47,15 @@ def analyzeComponents(glyph_masters, publicAxes):
             if t.tCenterY:     ca.transformHave.have_tcenterY = True
             for j,(tag,c) in enumerate(component.location.items()):
                 if c or tag in publicAxes:
-                    ca.coordinateHave.add(j)
+                    ca.coordinateHaveReset.add(j)
+                if c != masterLocation.get(tag, 0) or (tag in publicAxes and tag not in glyphAxes):
+                    ca.coordinateHaveOverlay.add(j)
             if component.location != defaultComponents[i].location:
                 ca.coordinateVaries = True
+
+    for ca in cas:
+        ca.coordinatesReset = len(ca.coordinateHaveReset) <= len(ca.coordinateHaveOverlay)
+        ca.coordinateHave = ca.coordinateHaveReset if ca.coordinatesReset else ca.coordinateHaveOverlay
 
     return cas
 
@@ -96,6 +107,9 @@ def buildComponentRecord(component, componentGlyph, componentAnalysis,
         # gid24
         gid = struct.pack(">L", gid)[1:]
         flag |= 1<<12
+
+    if ca.coordinatesReset:
+        flag |= 1<<14
 
     axisIndices = []
     for i,coord in enumerate(coords):
