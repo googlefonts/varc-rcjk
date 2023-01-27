@@ -191,7 +191,7 @@ def buildComponentRecord(
         scaleX = struct.pack(">h", fl2fi(t.scaleX, 10))
         flag |= 1 << 6
     if c.have_scaleY:
-        if not c.have_scaleX or t.scaleY != t.scaleX:
+        if not c.have_scaleX or fl2fi(t.scaleY, 10) != fl2fi(t.scaleX, 10):
             scaleY = struct.pack(">h", fl2fi(t.scaleY, 10))
             flag |= 1 << 7
         else:
