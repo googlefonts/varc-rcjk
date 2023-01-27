@@ -1,6 +1,7 @@
 from fontTools.misc.roundTools import otRound
 from fontTools.misc.fixedTools import floatToFixed as fl2fi
 from fontTools.varLib.models import normalizeLocation
+from rcjkTools import *
 import struct
 
 class TransformHave:
@@ -27,7 +28,8 @@ def analyzeComponents(glyph_masters):
     cas = []
     for component in layer.glyph.components:
         cas.append(ComponentAnalysis())
-    for layer in glyph_masters.values():
+    for masterLocationTuple, layer in glyph_masters.items():
+        masterLocation = dictifyLocation(masterLocationTuple)
         for i,component in enumerate(layer.glyph.components):
             ca = cas[i]
             t = component.transformation
@@ -40,9 +42,12 @@ def analyzeComponents(glyph_masters):
             if t.skewY:        ca.transformHave.have_skewY = True
             if t.tCenterX:     ca.transformHave.have_tcenterX = True
             if t.tCenterY:     ca.transformHave.have_tcenterY = True
-            for j,c in enumerate(component.location.values()):
-                if c:
+            for j,(tag,c) in enumerate(component.location.items()):
+                if c != masterLocation.get(tag, 0):
                     ca.coordinateHave.add(j)
+            # TODO The following check does not afford the fact that
+            # some location components might come from the master
+            # location.  Can we optimize that as well?
             if component.location != defaultComponents[i].location:
                 ca.coordinateVaries = True
 
