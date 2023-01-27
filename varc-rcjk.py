@@ -75,22 +75,18 @@ def tuplifyLocation(loc):
 def dictifyLocation(loc):
     return {k:v for k,v in loc}
 
-async def loadGlyph(glyphname, rcjkfont):
-    glyph = await rcjkfont.getGlyph(glyphname)
-    if hasattr(glyph, "masters"):
-        return glyph
-
-    glyph.masters = {}
+def glyphMasters(glyph):
 
     layersByName = {}
     for layer in glyph.layers:
         layersByName[layer.name] = layer
 
+    masters = {}
     for source in glyph.sources:
         locationTuple = tuplifyLocation(source.location)
-        glyph.masters[locationTuple] = layersByName[source.layerName]
+        masters[locationTuple] = layersByName[source.layerName]
 
-    return glyph
+    return masters
 
 def composeTransform(
     translateX: float,
@@ -159,8 +155,10 @@ async def decomposeGlyph(glyph, rcjkfont, location=(), trans=Identity):
     axes = {axis.name:(axis.minValue,axis.defaultValue,axis.maxValue)
             for axis in glyph.axes}
 
+    glyph_masters = glyphMasters(glyph)
+
     masterLocs = list(dictifyLocation(l)
-                      for l in glyph.masters.keys())
+                      for l in glyph_masters.keys())
     masterLocs = [normalizeLocation(m, axes)
                   for m in masterLocs]
 
@@ -170,7 +168,7 @@ async def decomposeGlyph(glyph, rcjkfont, location=(), trans=Identity):
     # Interpolate outline
 
     masterShapes = [await decomposeLayer(layer, rcjkfont, trans, shallow=True)
-                    for layer in glyph.masters.values()]
+                    for layer in glyph_masters.values()]
 
     loc = normalizeLocation(location, axes)
     shape = model.interpolateFromMasters(loc, masterShapes)
@@ -179,12 +177,12 @@ async def decomposeGlyph(glyph, rcjkfont, location=(), trans=Identity):
 
     # Interpolate components
 
-    numComps = len(next(iter(glyph.masters.values())).glyph.components)
+    numComps = len(next(iter(glyph_masters.values())).glyph.components)
     for compIndex in range(numComps):
         compTransforms = []
         compLocations = []
         name = None
-        for layer in glyph.masters.values():
+        for layer in glyph_masters.values():
             compName = layer.glyph.components[compIndex].name
             if name is not None:
                 assert name == compName
@@ -212,7 +210,7 @@ async def decomposeGlyph(glyph, rcjkfont, location=(), trans=Identity):
         transform = composeTransform(*transformVector)
         composedTrans = trans.transform(transform)
 
-        componentGlyph = await loadGlyph(name, rcjkfont)
+        componentGlyph = await rcjkfont.getGlyph(name)
         shape = await decomposeGlyph(componentGlyph, rcjkfont, location, composedTrans)
         value.extend(shape.value)
 
@@ -238,7 +236,7 @@ async def decomposeLayer(layer, rcjkfont, trans=Identity, shallow=False):
                                           t.tCenterX, t.tCenterY)
         composedTrans = trans.transform(componentTrans)
 
-        componentGlyph = await loadGlyph(component.name, rcjkfont)
+        componentGlyph = await rcjkfont.getGlyph(component.name)
 
         value.extend((await decomposeGlyph(componentGlyph, rcjkfont, component.location, composedTrans)).value)
 
@@ -259,8 +257,10 @@ def replayCommandsThroughCu2QuMultiPen(commands, cu2quPen):
 async def buildFlatGlyph(rcjkfont, glyph, axesNameToTag=None):
     axes = {axis.name:(axis.minValue,axis.defaultValue,axis.maxValue) for axis in glyph.axes}
 
+    glyph_masters = glyphMasters(glyph)
+
     shapes = {}
-    for loc,layer in glyph.masters.items():
+    for loc,layer in glyph_masters.items():
 
         loc = dictifyLocation(loc)
         loc = normalizeLocation(loc, axes)
@@ -275,7 +275,7 @@ async def buildFlatGlyph(rcjkfont, glyph, axesNameToTag=None):
 
         shapes[loc] = rspen.value
 
-    pens = [TTGlyphPen() for i in range(len(glyph.masters))]
+    pens = [TTGlyphPen() for i in range(len(glyph_masters))]
     cu2quPen = Cu2QuMultiPen(pens, 1)
     # Pass all shapes through Cu2QuMultiPen
     replayCommandsThroughCu2QuMultiPen(shapes.values(), cu2quPen)
@@ -292,7 +292,7 @@ async def buildFlatGlyph(rcjkfont, glyph, axesNameToTag=None):
     masterCoords = [pen.coordinates for pen in pens]
 
     masterLocs = list(dictifyLocation(l)
-                      for l in glyph.masters.keys())
+                      for l in glyph_masters.keys())
     masterLocs = [normalizeLocation(m, axes)
                   for m in masterLocs]
 
@@ -339,14 +339,16 @@ async def buildFlatFont(rcjkfont, glyphs):
     fb.save("flat.ttf")
 
 async def closureGlyphs(rcjkfont, glyphs):
+
     changed = True
     while changed:
         changed = False
         for glyph in list(glyphs.values()):
-            layer = next(iter(glyph.masters.values()))
+            glyph_masters = glyphMasters(glyph)
+            layer = next(iter(glyph_masters.values()))
             for component in layer.glyph.components:
                 if component.name not in glyphs:
-                    componentGlyph = await loadGlyph(component.name, rcjkfont)
+                    componentGlyph = await rcjkfont.getGlyph(component.name)
                     glyphs[component.name] = componentGlyph
                     changed = True
 
@@ -389,12 +391,14 @@ async def buildVarcFont(rcjkfont, glyphs):
     fbGlyphs = {'.notdef': Glyph()}
     fbVariations = {}
     for glyph in glyphs.values():
+        glyph_masters = glyphMasters(glyph)
+
         axes = {axis.name:(axis.minValue,axis.defaultValue,axis.maxValue) for axis in glyph.axes}
         axesMap = {}
         for i,name in enumerate(axes.keys()):
             axesMap[name] = '%4d' % i if name not in fvarTags else name
 
-        if glyph.masters[()].glyph.path.coordinates:
+        if glyph_masters[()].glyph.path.coordinates:
             fbGlyphs[glyph.name], fbVariations[glyph.name] = await buildFlatGlyph(rcjkfont, glyph, axesMap)
             continue
 
@@ -408,11 +412,11 @@ async def buildVarcFont(rcjkfont, glyphs):
 
         transformHave = []
         coordinateHave = []
-        layer = next(iter(glyph.masters.values()))
+        layer = next(iter(glyph_masters.values()))
         for component in layer.glyph.components:
             transformHave.append(ComponentHave())
             coordinateHave.append(set())
-        for layer in glyph.masters.values():
+        for layer in glyph_masters.values():
             for i,component in enumerate(layer.glyph.components):
                 t = component.transformation
                 if t.translateX:   transformHave[i].have_translateX = True
@@ -428,11 +432,11 @@ async def buildVarcFont(rcjkfont, glyphs):
                     if c:
                         coordinateHave[i].add(j)
 
-        for loc,layer in glyph.masters.items():
+        for loc,layer in glyph_masters.items():
 
             points = []
             for ci,component in enumerate(layer.glyph.components):
-                componentGlyph = await loadGlyph(component.name, rcjkfont)
+                componentGlyph = await rcjkfont.getGlyph(component.name)
                 componentAxes = {axis.name:(axis.minValue,axis.defaultValue,axis.maxValue)
                                  for axis in componentGlyph.axes}
                 coords = component.location
@@ -455,9 +459,9 @@ async def buildVarcFont(rcjkfont, glyphs):
 
         # Build glyph data
 
-        layer = next(iter(glyph.masters.values()))
+        layer = next(iter(glyph_masters.values()))
         for ci,component in enumerate(layer.glyph.components):
-            componentGlyph = await loadGlyph(component.name, rcjkfont)
+            componentGlyph = await rcjkfont.getGlyph(component.name)
             componentAxes = {axis.name:(axis.minValue,axis.defaultValue,axis.maxValue)
                              for axis in componentGlyph.axes}
             coords = component.location
@@ -530,7 +534,7 @@ async def buildVarcFont(rcjkfont, glyphs):
         # Build variation
 
         masterLocs = list(dictifyLocation(l)
-                          for l in glyph.masters.keys())
+                          for l in glyph_masters.keys())
         masterLocs = [normalizeLocation(m, axes)
                       for m in masterLocs]
 
@@ -584,11 +588,12 @@ async def main(args):
     glyphs = {}
     for glyphname in list(revCmap.keys())[:count] if not glyphset else glyphset:
 
-        glyph = await loadGlyph(glyphname, rcjkfont)
+        glyph = await rcjkfont.getGlyph(glyphname)
+        glyph_masters = glyphMasters(glyph)
         glyphs[glyphname] = glyph
 
         # Check that glyph does not mix contours and components
-        for layer in glyph.masters.values():
+        for layer in glyph_masters.values():
             assert not layer.glyph.path.coordinates or not layer.glyph.components
 
     await buildVarcFont(rcjkfont, glyphs)
