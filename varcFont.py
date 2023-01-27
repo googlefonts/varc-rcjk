@@ -57,6 +57,37 @@ def setupFvarAxes(rcjkfont, glyphs):
     return fvarAxes
 
 
+def analyzeComponents(glyph_masters):
+
+    transformHave = []
+    coordinateHave = []
+    layer = next(iter(glyph_masters.values()))
+    defaultComponents = layer.glyph.components
+    coordinateVaries = [False] * len(defaultComponents)
+    for component in layer.glyph.components:
+        transformHave.append(ComponentHave())
+        coordinateHave.append(set())
+    for layer in glyph_masters.values():
+        for i,component in enumerate(layer.glyph.components):
+            t = component.transformation
+            if t.translateX:   transformHave[i].have_translateX = True
+            if t.translateY:   transformHave[i].have_translateY = True
+            if t.rotation:     transformHave[i].have_rotation = True
+            if t.scaleX != 1:  transformHave[i].have_scaleX = True
+            if t.scaleY != 1:  transformHave[i].have_scaleY = True
+            if t.skewX:        transformHave[i].have_skewX = True
+            if t.skewY:        transformHave[i].have_skewY = True
+            if t.tCenterX:     transformHave[i].have_tcenterX = True
+            if t.tCenterY:     transformHave[i].have_tcenterY = True
+            for j,c in enumerate(component.location.values()):
+                if c:
+                    coordinateHave[i].add(j)
+            if component.location != defaultComponents[i].location:
+                coordinateVaries[i] = True
+
+    return coordinateVaries, coordinateHave, transformHave
+
+
 async def buildComponentPoints(rcjkfont, component,
                                coordinateVaries, coordinateHave, transformHave):
 
@@ -201,31 +232,7 @@ async def buildVarcFont(rcjkfont, glyphs):
         data = bytearray(struct.pack(">hhhhh", -2, b[0], b[1], b[2], b[3]))
         masterPoints = []
 
-        transformHave = []
-        coordinateHave = []
-        layer = next(iter(glyph_masters.values()))
-        defaultComponents = layer.glyph.components
-        coordinateVaries = [False] * len(defaultComponents)
-        for component in layer.glyph.components:
-            transformHave.append(ComponentHave())
-            coordinateHave.append(set())
-        for layer in glyph_masters.values():
-            for i,component in enumerate(layer.glyph.components):
-                t = component.transformation
-                if t.translateX:   transformHave[i].have_translateX = True
-                if t.translateY:   transformHave[i].have_translateY = True
-                if t.rotation:     transformHave[i].have_rotation = True
-                if t.scaleX != 1:  transformHave[i].have_scaleX = True
-                if t.scaleY != 1:  transformHave[i].have_scaleY = True
-                if t.skewX:        transformHave[i].have_skewX = True
-                if t.skewY:        transformHave[i].have_skewY = True
-                if t.tCenterX:     transformHave[i].have_tcenterX = True
-                if t.tCenterY:     transformHave[i].have_tcenterY = True
-                for j,c in enumerate(component.location.values()):
-                    if c:
-                        coordinateHave[i].add(j)
-                if component.location != defaultComponents[i].location:
-                    coordinateVaries[i] = True
+        coordinateVaries, coordinateHave, transformHave = analyzeComponents(glyph_masters)
 
         for loc,layer in glyph_masters.items():
 
