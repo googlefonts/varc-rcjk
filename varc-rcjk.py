@@ -344,8 +344,10 @@ async def closureGlyphs(rcjkfont, glyphs):
     while changed:
         changed = False
         for glyph in list(glyphs.values()):
-            glyph_masters = glyphMasters(glyph)
-            layer = next(iter(glyph_masters.values()))
+            assert glyph.sources[0].name == "<default>"
+            assert glyph.sources[0].layerName == "foreground"
+            assert glyph.layers[0].name == "foreground"
+            layer = glyph.layers[0]
             for component in layer.glyph.components:
                 if component.name not in glyphs:
                     componentGlyph = await rcjkfont.getGlyph(component.name)
