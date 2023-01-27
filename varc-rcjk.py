@@ -407,9 +407,11 @@ async def buildVarcFont(rcjkfont, glyphs):
         masterPoints = []
 
         transformHave = []
+        coordinateHave = []
         layer = next(iter(glyph.masters.values()))
         for component in layer.glyph.components:
             transformHave.append(ComponentHave())
+            coordinateHave.append(set())
         for layer in glyph.masters.values():
             for i,component in enumerate(layer.glyph.components):
                 t = component.transformation
@@ -422,6 +424,9 @@ async def buildVarcFont(rcjkfont, glyphs):
                 if t.skewY:        transformHave[i].have_skewY = True
                 if t.tCenterX:     transformHave[i].have_tcenterX = True
                 if t.tCenterY:     transformHave[i].have_tcenterY = True
+                for j,c in enumerate(component.location.values()):
+                    if c:
+                        coordinateHave[i].add(j)
 
         for loc,layer in glyph.masters.items():
 
@@ -435,8 +440,9 @@ async def buildVarcFont(rcjkfont, glyphs):
 
                 t = component.transformation
 
-                for coord in coords.values():
-                    points.append((fl2fi(coord, 14), 0))
+                for j,coord in enumerate(coords.values()):
+                    if j in coordinateHave[ci]:
+                        points.append((fl2fi(coord, 14), 0))
 
                 c = transformHave[ci]
                 if c.have_translateX or c.have_translateY:  points.append((t.translateX, t.translateY))
@@ -461,11 +467,12 @@ async def buildVarcFont(rcjkfont, glyphs):
 
             flag = 1<<13
 
-            numAxes = struct.pack(">B", len(coords))
+            numAxes = struct.pack(">B", len(coordinateHave[ci]))
             gid = struct.pack(">H", reverseGlyphMap[component.name])
 
             axisIndices = []
             for i,coord in enumerate(coords):
+                if i not in coordinateHave[ci]: continue
                 name = '%4d' % i if coord not in fvarTags else coord
                 axisIndices.append(fvarTags.index(name))
 
@@ -475,7 +482,7 @@ async def buildVarcFont(rcjkfont, glyphs):
                 axisIndices = b''.join(struct.pack(">H", v) for v in axisIndices)
                 flag |= (1<<1)
 
-            axisValues = b''.join(struct.pack(">h", fl2fi(v, 14)) for v in coords.values())
+            axisValues = b''.join(struct.pack(">h", fl2fi(v, 14)) for i,v in enumerate(coords.values()) if i in coordinateHave[ci])
 
             c = transformHave[ci]
 
