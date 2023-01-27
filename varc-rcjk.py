@@ -430,6 +430,11 @@ async def buildVarcFont(rcjkfont, glyphs):
         fbVariations[glyph.name] = []
         for delta, support in zip(deltas[1:], supports[1:]):
 
+            # Allow encoding 32768 by nudging it down.
+            for i,(x,y) in enumerate(delta):
+                if x == 32768: delta[i] = 32767,y
+                if y == 32768: delta[i] = x,32767
+
             delta.extend([(0,0), (0,0), (0,0), (0,0)]) # TODO Phantom points
             support = {axesNameToTag[k]:v for k,v in support.items()}
             tv = TupleVariation(support, delta)
