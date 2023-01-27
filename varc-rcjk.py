@@ -32,9 +32,10 @@ async def createFontBuilder(rcjkfont, family_name, style, glyphs):
     upem = await rcjkfont.getUnitsPerEm()
 
     glyphOrder = ['.notdef'] + list(glyphs.keys())
+    revCmap = await rcjkfont.getReverseCmap()
     cmap = {}
     for glyph in glyphs.values():
-        for unicode in glyph.unicodes:
+        for unicode in revCmap[glyph.name]:
             # Font has duplicate Unicodes unfortunately :(
             #assert unicode not in cmap, (hex(unicode), glyphname, cmap[unicode])
             cmap[unicode] = glyph.name
@@ -266,7 +267,8 @@ async def buildFlatFont(rcjkfont, glyphs):
 
     print("Building flat.ttf")
 
-    charGlyphs = {g:v for g,v in glyphs.items() if v.unicodes}
+    revCmap = await rcjkfont.getReverseCmap()
+    charGlyphs = {g:v for g,v in glyphs.items() if revCmap[g]}
 
     fb = await createFontBuilder(rcjkfont, "rcjk", "flat", charGlyphs)
 
@@ -474,11 +476,6 @@ async def main(args):
         # Check that glyph does not mix contours and components
         for layer in glyph.masters.values():
             assert not layer.glyph.path.coordinates or not layer.glyph.components
-
-        if glyph.unicodes:
-            count -= 1
-            if not count:
-                break
 
     await buildVarcFont(rcjkfont, glyphs)
     await buildFlatFont(rcjkfont, glyphs)
