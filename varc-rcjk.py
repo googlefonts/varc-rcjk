@@ -479,7 +479,15 @@ async def buildVarcFont(rcjkfont, glyphs):
             flag = 0
 
             numAxes = struct.pack(">B", len(coordinateHave[ci]))
-            gid = struct.pack(">H", reverseGlyphMap[component.name])
+
+            gid = reverseGlyphMap[component.name]
+            if gid <= 65535:
+                # gid16
+                gid = struct.pack(">H", gid)
+            else:
+                # gid24
+                gid = struct.pack(">L", gid)[1:]
+                flag |= 1<<12
 
             axisIndices = []
             for i,coord in enumerate(coords):
