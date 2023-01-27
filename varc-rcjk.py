@@ -2,6 +2,9 @@
 # pip install git+https://github.com/BlackFoundryCom/fontra-rcjk.git
 
 from font import createFontBuilder
+from transform import composeTransform, Identity
+from mathRecording import MathRecording
+
 from fontTools.misc.roundTools import otRound
 from fontTools.ttLib.tables._g_l_y_f import Glyph, GlyphCoordinates
 from fontTools.pens.cu2quPen import Cu2QuMultiPen
@@ -9,7 +12,6 @@ from fontTools.pens.ttGlyphPen import TTGlyphPen
 from fontTools.pens.recordingPen import RecordingPen, RecordingPointPen
 from fontTools.pens.pointPen import PointToSegmentPen
 from fontTools.pens.transformPen import TransformPointPen
-from fontTools.misc.transform import Transform, Identity
 from fontTools.misc.vector import Vector
 from fontTools.misc.fixedTools import floatToFixed as fl2fi
 from fontTools.varLib.models import normalizeLocation, VariationModel
@@ -19,8 +21,6 @@ from functools import partial
 import argparse
 import asyncio
 import struct
-import math
-import operator
 import sys
 from fontra_rcjk.backend_fs import RCJKBackend
 
@@ -43,68 +43,6 @@ def glyphMasters(glyph):
         masters[locationTuple] = layersByName[source.layerName]
 
     return masters
-
-def composeTransform(
-    translateX: float,
-    translateY: float,
-    rotation: float,
-    scaleX: float,
-    scaleY: float,
-    skewX: float,
-    skewY: float,
-    tCenterX: float,
-    tCenterY: float,
-) -> Transform:
-    """Compose a decomposed transform into an Affine transform."""
-    t = Transform()
-    t = t.translate(tCenterX, tCenterY)
-    t = t.translate(translateX, translateY)
-    t = t.rotate(math.radians(rotation))
-    t = t.scale(scaleX, scaleY)
-    t = t.skew(-math.radians(skewX), math.radians(skewY))
-    t = t.translate(-tCenterX, -tCenterY)
-    return t
-
-class MathRecording:
-
-    def __init__(self, value):
-        self.value = list(value)
-
-    def __mul__(self, scalar):
-        out = []
-        for v in self.value:
-            if v[0] != "addPoint":
-                out.append(v)
-                continue
-            op, (pt, segmentType, smooth, name), kwargs = v
-            pt = (pt[0] * scalar, pt[1] * scalar)
-            out.append((op, (pt, segmentType, smooth, name), kwargs))
-
-        return MathRecording(out)
-
-    def _iop(self, other, op):
-        assert len(self.value) == len(other.value)
-        out = []
-        for v,o in zip(self.value, other.value):
-            assert v[0] == o[0]
-            if v[0] != "addPoint":
-                out.append(v)
-                continue
-            op0, (pt0, segmentType0, smooth0, name0), kwargs0 = v
-            op1, (pt1, segmentType1, smooth1, name1), kwargs0 = o
-            assert segmentType0 == segmentType1
-            #assert smooth0 == smooth1
-            pt0 = (op(pt0[0], pt1[0]), op(pt0[1], pt1[1]))
-            out.append((op0, (pt0, segmentType0, smooth0, name0), kwargs0))
-
-        self.value = out
-        return self
-
-    def __isub__(self, other):
-        return self._iop(other, operator.sub)
-
-    def __iadd__(self, other):
-        return self._iop(other, operator.add)
 
 async def decomposeGlyph(glyph, rcjkfont, location=(), trans=Identity):
     value = []
