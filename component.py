@@ -14,39 +14,43 @@ class TransformHave:
     have_tcenterX = False
     have_tcenterY = False
 
+class ComponentAnalysis:
+    def __init__(self):
+        self.coordinateVaries = False
+        self.coordinateHave = set()
+        self.transformHave = TransformHave()
+
 def analyzeComponents(glyph_masters):
 
-    transformHave = []
-    coordinateHave = []
     layer = next(iter(glyph_masters.values()))
     defaultComponents = layer.glyph.components
-    coordinateVaries = [False] * len(defaultComponents)
+    cas = []
     for component in layer.glyph.components:
-        transformHave.append(TransformHave())
-        coordinateHave.append(set())
+        cas.append(ComponentAnalysis())
     for layer in glyph_masters.values():
         for i,component in enumerate(layer.glyph.components):
+            ca = cas[i]
             t = component.transformation
-            if t.translateX:   transformHave[i].have_translateX = True
-            if t.translateY:   transformHave[i].have_translateY = True
-            if t.rotation:     transformHave[i].have_rotation = True
-            if t.scaleX != 1:  transformHave[i].have_scaleX = True
-            if t.scaleY != 1:  transformHave[i].have_scaleY = True
-            if t.skewX:        transformHave[i].have_skewX = True
-            if t.skewY:        transformHave[i].have_skewY = True
-            if t.tCenterX:     transformHave[i].have_tcenterX = True
-            if t.tCenterY:     transformHave[i].have_tcenterY = True
+            if t.translateX:   ca.transformHave.have_translateX = True
+            if t.translateY:   ca.transformHave.have_translateY = True
+            if t.rotation:     ca.transformHave.have_rotation = True
+            if t.scaleX != 1:  ca.transformHave.have_scaleX = True
+            if t.scaleY != 1:  ca.transformHave.have_scaleY = True
+            if t.skewX:        ca.transformHave.have_skewX = True
+            if t.skewY:        ca.transformHave.have_skewY = True
+            if t.tCenterX:     ca.transformHave.have_tcenterX = True
+            if t.tCenterY:     ca.transformHave.have_tcenterY = True
             for j,c in enumerate(component.location.values()):
                 if c:
-                    coordinateHave[i].add(j)
+                    ca.coordinateHave.add(j)
             if component.location != defaultComponents[i].location:
-                coordinateVaries[i] = True
+                ca.coordinateVaries = True
 
-    return coordinateVaries, coordinateHave, transformHave
+    return cas
 
 
-async def buildComponentPoints(rcjkfont, component,
-                               coordinateVaries, coordinateHave, transformHave):
+async def buildComponentPoints(rcjkfont, component, componentAnalysis):
+    ca = componentAnalysis
 
     componentGlyph = await rcjkfont.getGlyph(component.name)
     componentAxes = {axis.name:(axis.minValue,axis.defaultValue,axis.maxValue)
@@ -58,12 +62,12 @@ async def buildComponentPoints(rcjkfont, component,
 
     points = []
 
-    if coordinateVaries:
+    if ca.coordinateVaries:
         for j,coord in enumerate(coords.values()):
-            if j in coordinateHave:
+            if j in ca.coordinateHave:
                 points.append((fl2fi(coord, 14), 0))
 
-    c = transformHave
+    c = ca.transformHave
     if c.have_translateX or c.have_translateY:  points.append((t.translateX, t.translateY))
     if c.have_rotation:                         points.append((fl2fi(t.rotation / 180., 12), 0))
     if c.have_scaleX or c.have_scaleY:          points.append((fl2fi(t.scaleX, 10), fl2fi(t.scaleY, 10)))
@@ -72,9 +76,9 @@ async def buildComponentPoints(rcjkfont, component,
 
     return points
 
-async def buildComponentRecord(rcjkfont, component,
-                               coordinateVaries, coordinateHave, transformHave,
+async def buildComponentRecord(rcjkfont, component, componentAnalysis,
                                fvarTags, reverseGlyphMap):
+    ca = componentAnalysis
 
     componentGlyph = await rcjkfont.getGlyph(component.name)
 
@@ -85,7 +89,7 @@ async def buildComponentRecord(rcjkfont, component,
 
     flag = 0
 
-    numAxes = struct.pack(">B", len(coordinateHave))
+    numAxes = struct.pack(">B", len(ca.coordinateHave))
 
     gid = reverseGlyphMap[component.name]
     if gid <= 65535:
@@ -98,11 +102,11 @@ async def buildComponentRecord(rcjkfont, component,
 
     axisIndices = []
     for i,coord in enumerate(coords):
-        if i not in coordinateHave: continue
+        if i not in ca.coordinateHave: continue
         name = '%4d' % i if coord not in fvarTags else coord
         axisIndices.append(fvarTags.index(name))
 
-    if coordinateVaries:
+    if ca.coordinateVaries:
         flag |= 1<<13
 
     if all(v <= 255 for v in axisIndices):
@@ -111,9 +115,9 @@ async def buildComponentRecord(rcjkfont, component,
         axisIndices = b''.join(struct.pack(">H", v) for v in axisIndices)
         flag |= (1<<1)
 
-    axisValues = b''.join(struct.pack(">h", fl2fi(v, 14)) for i,v in enumerate(coords.values()) if i in coordinateHave)
+    axisValues = b''.join(struct.pack(">h", fl2fi(v, 14)) for i,v in enumerate(coords.values()) if i in ca.coordinateHave)
 
-    c = transformHave
+    c = ca.transformHave
 
     t = component.transformation
 

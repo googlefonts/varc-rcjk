@@ -76,7 +76,7 @@ async def buildVarcFont(rcjkfont, glyphs):
 
         # VarComposite glyph...
 
-        coordinateVaries, coordinateHave, transformHave = analyzeComponents(glyph_masters)
+        componentAnalysis = analyzeComponents(glyph_masters)
 
         #
         # Build glyph data
@@ -89,9 +89,7 @@ async def buildVarcFont(rcjkfont, glyphs):
         for ci,component in enumerate(layer.glyph.components):
             rec = await buildComponentRecord(rcjkfont,
                                              component,
-                                             coordinateVaries[ci],
-                                             coordinateHave[ci],
-                                             transformHave[ci],
+                                             componentAnalysis[ci],
                                              fvarTags,
                                              reverseGlyphMap)
             data.extend(rec)
@@ -114,9 +112,7 @@ async def buildVarcFont(rcjkfont, glyphs):
 
                 pts = await buildComponentPoints(rcjkfont,
                                                  component,
-                                                 coordinateVaries[ci],
-                                                 coordinateHave[ci],
-                                                 transformHave[ci])
+                                                 componentAnalysis[ci])
                 points.extend(pts)
 
             masterPoints.append(GlyphCoordinates(points))
