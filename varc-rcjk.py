@@ -321,7 +321,7 @@ async def buildVarcFont(rcjkfont, glyphs):
     fvarAxesOffset = len(fvarAxes)
     for i in range(maxAxes):
         tag = '%4d' % i
-        fvarAxes.append((tag, 0, 0, 0, tag))
+        fvarAxes.append((tag, -1, 0, 1, tag))
     fvarTags = [axis[0] for axis in fvarAxes]
 
 
