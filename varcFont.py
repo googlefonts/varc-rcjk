@@ -1,4 +1,4 @@
-from font import createFontBuilder
+from font import createFontBuilder, fixLsb
 from rcjkTools import *
 from flatFont import buildFlatGlyph
 from component import *

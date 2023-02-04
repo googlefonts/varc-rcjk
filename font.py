@@ -40,3 +40,11 @@ async def createFontBuilder(rcjkfont, family_name, style, glyphs):
     fb.setupPost(keepGlyphNames=False)
 
     return fb
+
+
+def fixLsb(fb):
+    metrics = fb.font["hmtx"].metrics
+    glyf = fb.font["glyf"]
+    for glyphname in glyf.keys():
+        v = getattr(glyf[glyphname], "xMin", 0)
+        metrics[glyphname] = (metrics[glyphname][0], v)

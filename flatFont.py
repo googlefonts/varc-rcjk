@@ -1,4 +1,4 @@
-from font import createFontBuilder
+from font import createFontBuilder, fixLsb
 from decompose import decomposeLayer
 from rcjkTools import *
 
@@ -7,6 +7,7 @@ from fontTools.pens.recordingPen import RecordingPen, RecordingPointPen
 from fontTools.pens.pointPen import PointToSegmentPen
 from fontTools.pens.ttGlyphPen import TTGlyphPen
 from fontTools.pens.cu2quPen import Cu2QuMultiPen
+from fontTools.pens.boundsPen import ControlBoundsPen
 from fontTools.ttLib.tables._g_l_y_f import Glyph, GlyphCoordinates
 from fontTools.ttLib.tables.TupleVariation import TupleVariation
 from functools import partial
@@ -117,4 +118,5 @@ async def buildFlatFont(rcjkfont, glyphs):
     fb.setupFvar(fvarAxes, [])
     fb.setupGlyf(fbGlyphs)
     fb.setupGvar(fbVariations)
+    fixLsb(fb)
     fb.save("flat.ttf")
