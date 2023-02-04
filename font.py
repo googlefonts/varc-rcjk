@@ -46,5 +46,13 @@ def fixLsb(fb):
     metrics = fb.font["hmtx"].metrics
     glyf = fb.font["glyf"]
     for glyphname in glyf.keys():
-        v = getattr(glyf[glyphname], "xMin", 0)
+        v = getattr(glyf.glyphs[glyphname], "xMin", 0)
         metrics[glyphname] = (metrics[glyphname][0], v)
+
+
+def recalcSimpleGlyphBounds(fb):
+    glyf = fb.font["glyf"]
+    for glyphname in glyf.keys():
+        glyph = glyf.glyphs[glyphname]
+        if not hasattr(glyph, "data"):
+            glyph.recalcBounds(glyf)

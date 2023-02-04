@@ -1,4 +1,4 @@
-from font import createFontBuilder, fixLsb
+from font import *
 from rcjkTools import *
 from flatFont import buildFlatGlyph
 from component import *
@@ -173,5 +173,7 @@ async def buildVarcFont(rcjkfont, glyphs):
     fb.setupFvar(fvarAxes, [])
     fb.setupGlyf(fbGlyphs)
     fb.setupGvar(fbVariations)
+    recalcSimpleGlyphBounds(fb)
+    fixLsb(fb)
     fb.font.recalcBBoxes = False
     fb.save("varc.ttf")
