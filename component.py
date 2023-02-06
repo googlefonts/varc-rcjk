@@ -59,7 +59,7 @@ def analyzeComponents(glyph_masters, glyphAxes, publicAxes):
                 ca.transformHave.have_tcenterY = True
 
             for j, (tag, c) in enumerate(component.location.items()):
-                if c or tag in publicAxes:
+                if c:
                     ca.coordinateHaveReset.add(j)
                 if c != masterLocation.get(tag, 0) or (
                     tag in publicAxes and tag not in glyphAxes
