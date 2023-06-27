@@ -170,7 +170,7 @@ async def buildVarcFont(rcjkfont, glyphs):
             fbVariations[glyph.name].append(tv)
 
     fb.setupFvar(fvarAxes, [])
-    fb.setupGlyf(fbGlyphs)
+    fb.setupGlyf(fbGlyphs, validateGlyphFormat=False)
     fb.setupGvar(fbVariations)
     recalcSimpleGlyphBounds(fb)
     fixLsb(fb)
