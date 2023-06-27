@@ -5,7 +5,7 @@ async def createFontBuilder(rcjkfont, family_name, style, glyphs):
     upem = await rcjkfont.getUnitsPerEm()
 
     glyphOrder = [".notdef"] + list(glyphs.keys())
-    revCmap = await rcjkfont.getReverseCmap()
+    revCmap = await rcjkfont.getGlyphMap()
     cmap = {}
     for glyph in glyphs.values():
         for unicode in revCmap[glyph.name]:

@@ -90,7 +90,7 @@ async def buildFlatFont(rcjkfont, glyphs):
 
     print("Building flat.ttf")
 
-    revCmap = await rcjkfont.getReverseCmap()
+    revCmap = await rcjkfont.getGlyphMap()
     charGlyphs = {g: v for g, v in glyphs.items() if revCmap[g]}
 
     fb = await createFontBuilder(rcjkfont, "rcjk", "flat", charGlyphs)

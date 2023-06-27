@@ -29,7 +29,7 @@ async def main(args):
         glyphset = args[1:]
 
     rcjkfont = RCJKBackend.fromPath(rcjk_path)
-    revCmap = await rcjkfont.getReverseCmap()
+    revCmap = await rcjkfont.getGlyphMap()
 
     glyphs = {}
     for glyphname in list(revCmap.keys())[:count] if not glyphset else glyphset:
