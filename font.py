@@ -1,7 +1,7 @@
 from fontTools.fontBuilder import FontBuilder
 
 
-async def createFontBuilder(rcjkfont, family_name, style, glyphs):
+async def createFontBuilder(rcjkfont, family_name, style, glyphs, glyphDataFormat=0):
     upem = await rcjkfont.getUnitsPerEm()
 
     glyphOrder = [".notdef"] + list(glyphs.keys())
@@ -27,7 +27,7 @@ async def createFontBuilder(rcjkfont, family_name, style, glyphs):
     )
 
     fb = FontBuilder(upem, isTTF=True)
-    # fb.setupHead(unitsPerEm=upem, created=rcjkfont.created, modified=rcjkfont.modified)
+    fb.setupHead(unitsPerEm=upem, glyphDataFormat=glyphDataFormat)#created=rcjkfont.created, modified=rcjkfont.modified)
     fb.setupNameTable(nameStrings)
     fb.setupGlyphOrder(glyphOrder)
     fb.setupCharacterMap(cmap)
