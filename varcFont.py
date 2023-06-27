@@ -13,8 +13,7 @@ import struct
 async def closureGlyph(rcjkfont, glyphs, glyph):
     assert glyph.sources[0].name == "<default>"
     assert glyph.sources[0].layerName == "foreground"
-    assert glyph.layers[0].name == "foreground"
-    layer = glyph.layers[0]
+    layer = glyph.layers["foreground"]
     for component in layer.glyph.components:
         if component.name not in glyphs:
             componentGlyph = await rcjkfont.getGlyph(component.name)

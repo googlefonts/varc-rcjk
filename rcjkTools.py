@@ -8,14 +8,10 @@ def dictifyLocation(loc):
 
 def glyphMasters(glyph):
 
-    layersByName = {}
-    for layer in glyph.layers:
-        layersByName[layer.name] = layer
-
     masters = {}
     for source in glyph.sources:
         locationTuple = tuplifyLocation(source.location)
         assert locationTuple not in masters
-        masters[locationTuple] = layersByName[source.layerName]
+        masters[locationTuple] = glyph.layers[source.layerName]
 
     return masters

@@ -18,8 +18,7 @@ async def createFontBuilder(rcjkfont, family_name, style, glyphs):
         glyph = await rcjkfont.getGlyph(glyphname)
         assert glyph.sources[0].name == "<default>"
         assert glyph.sources[0].layerName == "foreground"
-        assert glyph.layers[0].name == "foreground"
-        advance = glyph.layers[0].glyph.xAdvance
+        advance = glyph.layers["foreground"].glyph.xAdvance
         metrics[glyphname] = (max(advance, 0), 0)  # TODO lsb
 
     nameStrings = dict(
