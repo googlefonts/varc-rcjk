@@ -7,7 +7,6 @@ def dictifyLocation(loc):
 
 
 def glyphMasters(glyph):
-
     masters = {}
     for source in glyph.sources:
         locationTuple = tuplifyLocation(source.location)

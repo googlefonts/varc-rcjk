@@ -35,7 +35,6 @@ async def buildFlatGlyph(rcjkfont, glyph, axesNameToTag=None):
 
     shapes = {}
     for loc, layer in glyph_masters.items():
-
         loc = dictifyLocation(loc)
         loc = normalizeLocation(loc, axes)
         loc = {k: v for k, v in loc.items() if v != 0}
@@ -76,7 +75,6 @@ async def buildFlatGlyph(rcjkfont, glyph, axesNameToTag=None):
 
     fbGlyph.coordinates = deltas[0]
     for delta, support in zip(deltas[1:], supports[1:]):
-
         delta.extend([(0, 0), (0, 0), (0, 0), (0, 0)])  # TODO Phantom points
         if axesNameToTag is not None:
             support = {axesNameToTag[k]: v for k, v in support.items()}
@@ -87,7 +85,6 @@ async def buildFlatGlyph(rcjkfont, glyph, axesNameToTag=None):
 
 
 async def buildFlatFont(rcjkfont, glyphs):
-
     print("Building flat.ttf")
 
     revCmap = await rcjkfont.getGlyphMap()

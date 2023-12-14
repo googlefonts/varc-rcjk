@@ -22,7 +22,6 @@ async def closureGlyph(rcjkfont, glyphs, glyph):
 
 
 async def closureGlyphs(rcjkfont, glyphs):
-
     for glyph in list(glyphs.values()):
         await closureGlyph(rcjkfont, glyphs, glyph)
 
@@ -56,7 +55,6 @@ def setupFvarAxes(rcjkfont, glyphs):
 
 
 async def buildVarcFont(rcjkfont, glyphs):
-
     print("Building varc.ttf")
 
     await closureGlyphs(rcjkfont, glyphs)
@@ -74,7 +72,6 @@ async def buildVarcFont(rcjkfont, glyphs):
     fbVariations = {}
 
     for glyph in glyphs.values():
-
         glyph_masters = glyphMasters(glyph)
 
         axes = {
@@ -86,7 +83,6 @@ async def buildVarcFont(rcjkfont, glyphs):
             axesMap[name] = "%4d" % i if name not in fvarTags else name
 
         if glyph_masters[()].glyph.path.coordinates:
-
             # Simple glyph...
 
             fbGlyphs[glyph.name], fbVariations[glyph.name] = await buildFlatGlyph(
@@ -130,10 +126,8 @@ async def buildVarcFont(rcjkfont, glyphs):
 
         masterPoints = []
         for loc, layer in glyph_masters.items():
-
             points = []
             for ci, component in enumerate(layer.glyph.components):
-
                 pts = buildComponentPoints(
                     rcjkfont, component, glyphs[component.name], componentAnalysis[ci]
                 )
@@ -157,7 +151,6 @@ async def buildVarcFont(rcjkfont, glyphs):
 
         fbVariations[glyph.name] = []
         for delta, support in zip(deltas[1:], supports[1:]):
-
             # Allow encoding 32768 by nudging it down.
             for i, (x, y) in enumerate(delta):
                 if x == 32768:

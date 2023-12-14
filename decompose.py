@@ -89,7 +89,6 @@ async def decomposeGlyph(glyph, rcjkfont, location=(), trans=Identity):
 
 
 async def decomposeLayer(layer, rcjkfont, trans=Identity, shallow=False):
-
     pen = RecordingPointPen()
     tpen = TransformPointPen(pen, trans)
     layer.glyph.path.drawPoints(tpen)
@@ -99,7 +98,6 @@ async def decomposeLayer(layer, rcjkfont, trans=Identity, shallow=False):
         return MathRecording(value)
 
     for component in layer.glyph.components:
-
         t = component.transformation
         componentTrans = composeTransform(
             t.translateX,

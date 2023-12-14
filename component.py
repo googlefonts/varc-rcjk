@@ -19,6 +19,7 @@ class TransformHave:
 
 class ComponentAnalysis:
     def __init__(self):
+        self.coordinates = set()
         self.coordinateVaries = False
         self.coordinateHaveOverlay = set()
         self.coordinateHaveReset = set()
@@ -28,12 +29,19 @@ class ComponentAnalysis:
 
 
 def analyzeComponents(glyph_masters, glyphAxes, publicAxes):
-
     layer = next(iter(glyph_masters.values()))
     defaultComponents = layer.glyph.components
     cas = []
     for component in layer.glyph.components:
         cas.append(ComponentAnalysis())
+
+    for masterLocationTuple, layer in glyph_masters.items():
+        for i, component in enumerate(layer.glyph.components):
+            ca = cas[i]
+            ca.coordinates.update(component.location.keys())
+    for ca in cas:
+        ca.coordinates = list(sorted(ca.coordinates))
+
     for masterLocationTuple, layer in glyph_masters.items():
         masterLocation = dictifyLocation(masterLocationTuple)
         for i, component in enumerate(layer.glyph.components):
@@ -58,13 +66,14 @@ def analyzeComponents(glyph_masters, glyphAxes, publicAxes):
             if otRound(t.tCenterY):
                 ca.transformHave.have_tcenterY = True
 
-            for j, (tag, c) in enumerate(component.location.items()):
-                if c:
-                    ca.coordinateHaveReset.add(j)
-                if c != masterLocation.get(tag, 0) or (
+            for j, tag in enumerate(ca.coordinates):
+                c = component.location.get(tag, None)
+                if c is not None:
+                    ca.coordinateHaveReset.add(tag)
+                if c != masterLocation.get(tag, None) or (
                     tag in publicAxes and tag not in glyphAxes
                 ):
-                    ca.coordinateHaveOverlay.add(j)
+                    ca.coordinateHaveOverlay.add(tag)
 
     for ca in cas:
         ca.coordinatesReset = len(ca.coordinateHaveReset) <= len(
@@ -77,11 +86,10 @@ def analyzeComponents(glyph_masters, glyphAxes, publicAxes):
     for layer in glyph_masters.values():
         for i, component in enumerate(layer.glyph.components):
             ca = cas[i]
-            for j, (tag, c) in enumerate(component.location.items()):
-                if (
-                    j in ca.coordinateHave
-                    and component.location[tag] != defaultComponents[i].location[tag]
-                ):
+            for tag in ca.coordinates:
+                if tag in ca.coordinateHave and component.location.get(
+                    tag, None
+                ) != defaultComponents[i].location.get(tag, None):
                     ca.coordinateVaries = True
 
     return cas
@@ -102,8 +110,9 @@ def buildComponentPoints(rcjkfont, component, componentGlyph, componentAnalysis)
     points = []
 
     if ca.coordinateVaries:
-        for j, coord in enumerate(coords.values()):
-            if j in ca.coordinateHave:
+        for tag in componentAxes.keys():
+            if tag in ca.coordinateHave:
+                coord = coords.get(tag, 0)
                 points.append((fl2fi(coord, 14), 0))
 
     c = ca.transformHave
@@ -150,10 +159,10 @@ def buildComponentRecord(
         flag |= 1 << 14
 
     axisIndices = []
-    for i, coord in enumerate(coords):
-        if i not in ca.coordinateHave:
+    for i, tag in enumerate(componentAxes.keys()):
+        if tag not in ca.coordinateHave:
             continue
-        name = "%4d" % i if coord not in fvarTags else coord
+        name = "%4d" % i if tag not in fvarTags else tag
         axisIndices.append(fvarTags.index(name))
 
     if ca.coordinateVaries:
@@ -166,9 +175,9 @@ def buildComponentRecord(
         flag |= 1 << 1
 
     axisValues = b"".join(
-        struct.pack(">h", fl2fi(v, 14))
-        for i, v in enumerate(coords.values())
-        if i in ca.coordinateHave
+        struct.pack(">h", fl2fi(coords.get(tag, 0), 14))
+        for tag in componentAxes.keys()
+        if tag in ca.coordinateHave
     )
 
     c = ca.transformHave

@@ -27,7 +27,9 @@ async def createFontBuilder(rcjkfont, family_name, style, glyphs, glyphDataForma
     )
 
     fb = FontBuilder(upem, isTTF=True)
-    fb.setupHead(unitsPerEm=upem, glyphDataFormat=glyphDataFormat)#created=rcjkfont.created, modified=rcjkfont.modified)
+    fb.setupHead(
+        unitsPerEm=upem, glyphDataFormat=glyphDataFormat
+    )  # created=rcjkfont.created, modified=rcjkfont.modified)
     fb.setupNameTable(nameStrings)
     fb.setupGlyphOrder(glyphOrder)
     fb.setupCharacterMap(cmap)

@@ -13,7 +13,6 @@ from fontra_rcjk.backend_fs import RCJKBackend
 
 
 async def main(args):
-
     print("Loading glyphs")
 
     count = 10000000
@@ -33,7 +32,6 @@ async def main(args):
 
     glyphs = {}
     for glyphname in list(revCmap.keys())[:count] if not glyphset else glyphset:
-
         glyph = await rcjkfont.getGlyph(glyphname)
         glyph_masters = glyphMasters(glyph)
         glyphs[glyphname] = glyph
