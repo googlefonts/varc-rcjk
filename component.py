@@ -28,9 +28,21 @@ class ComponentAnalysis:
         self.transformHave = TransformHave()
 
 
-def analyzeComponents(glyph_masters, glyphAxes, publicAxes):
+def analyzeComponents(glyph_masters, glyphs, glyphAxes, publicAxes):
     layer = next(iter(glyph_masters.values()))
     defaultComponents = layer.glyph.components
+    defaultLocations = []
+    allComponentAxes = []
+    for component in defaultComponents:
+        loc = component.location
+        componentAxes = {
+            axis.name: (axis.minValue, axis.defaultValue, axis.maxValue)
+            for axis in glyphs[component.name].axes
+        }
+        allComponentAxes.append(componentAxes)
+        loc = normalizeLocation(loc, componentAxes)
+        defaultLocations.append(loc)
+
     cas = []
     for component in layer.glyph.components:
         cas.append(ComponentAnalysis())
@@ -66,11 +78,13 @@ def analyzeComponents(glyph_masters, glyphAxes, publicAxes):
             if otRound(t.tCenterY):
                 ca.transformHave.have_tcenterY = True
 
-            for j, tag in enumerate(ca.coordinates):
-                c = component.location.get(tag, None)
-                if c is not None:
+            loc = component.location
+            loc = normalizeLocation(loc, allComponentAxes[i])
+            for tag in ca.coordinates:
+                c = loc.get(tag, 0)
+                if c:
                     ca.coordinateHaveReset.add(tag)
-                if c != masterLocation.get(tag, None) or (
+                if c != masterLocation.get(tag, 0) or (
                     tag in publicAxes and tag not in glyphAxes
                 ):
                     ca.coordinateHaveOverlay.add(tag)
@@ -86,10 +100,12 @@ def analyzeComponents(glyph_masters, glyphAxes, publicAxes):
     for layer in glyph_masters.values():
         for i, component in enumerate(layer.glyph.components):
             ca = cas[i]
+            loc = component.location
+            loc = normalizeLocation(loc, allComponentAxes[i])
             for tag in ca.coordinates:
-                if tag in ca.coordinateHave and component.location.get(
-                    tag, None
-                ) != defaultComponents[i].location.get(tag, None):
+                if tag in ca.coordinateHave and loc.get(tag, 0) != defaultLocations[
+                    i
+                ].get(tag, 0):
                     ca.coordinateVaries = True
 
     return cas
