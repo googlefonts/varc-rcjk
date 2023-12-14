@@ -49,11 +49,13 @@ async def decomposeGlyph(glyph, rcjkfont, location=(), trans=Identity):
             compTransforms.append(layer.glyph.components[compIndex].transformation)
             compLocations.append(layer.glyph.components[compIndex].location)
 
-        locKeys = list(compLocations[0].keys())
+        locKeys = set()
+        for locations in compLocations:
+            locKeys.update(locations.keys())
+        locKeys = sorted(locKeys)
         locationVectors = []
         for locations in compLocations:
-            assert locKeys == list(locations.keys())
-            locationVectors.append(Vector(locations.values()))
+            locationVectors.append(Vector(locations.get(k, 0) for k in locKeys))
         transformVectors = []
         for t in compTransforms:
             transformVectors.append(
