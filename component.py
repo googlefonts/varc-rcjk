@@ -1,7 +1,7 @@
 from fontTools.misc.roundTools import otRound
 from fontTools.misc.fixedTools import floatToFixed as fl2fi
 from fontTools.varLib.models import normalizeLocation
-from fontTools.ttLib.tables.otTables import VarComponentRecord, VarComponentFlags
+from fontTools.ttLib.tables.otTables import VarComponent, VarComponentFlags
 from rcjkTools import *
 import struct
 
@@ -161,7 +161,7 @@ def buildComponentRecord(component, componentGlyph, componentAnalysis, fvarTags)
     for i, name in enumerate(componentAxes.keys()):
         axesMap[name] = "%4d" % i if name not in fvarTags else name
 
-    rec = VarComponentRecord()
+    rec = VarComponent()
     rec.glyphName = component.name
     rec.transform = component.transformation
     rec.location = {axesMap[tag]: v for tag, v in coords.items()}

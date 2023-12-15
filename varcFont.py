@@ -103,7 +103,7 @@ async def buildVarcFont(rcjkfont, glyphs):
 
         componentAnalysis = analyzeComponents(glyph_masters, glyphs, axes, publicAxes)
 
-        glyphRecord = varcGlyphs[glyph.name] = ot.VarCompositeGlyphRecord()
+        glyphRecord = varcGlyphs[glyph.name] = ot.VarCompositeGlyph()
         glyphRecord.populateDefaults()
         componentRecords = glyphRecord.components
 
@@ -164,7 +164,7 @@ async def buildVarcFont(rcjkfont, glyphs):
     coverage.glyphs = [glyph for glyph in varcGlyphs.keys()]
 
     varCompositeGlyphs = varcTable.VarCompositeGlyphs = ot.VarCompositeGlyphs()
-    varCompositeGlyphs.items = list(varcGlyphs.values())
+    varCompositeGlyphs.glyphs = list(varcGlyphs.values())
 
     varcTable.VarIndexMap = varIdxMap
     varcTable.VarStore = varStore
