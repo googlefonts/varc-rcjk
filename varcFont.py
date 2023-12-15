@@ -6,8 +6,9 @@ from component import *
 from fontTools.ttLib import newTable
 from fontTools.ttLib.tables._g_l_y_f import Glyph, GlyphCoordinates
 from fontTools.varLib.models import normalizeLocation, VariationModel
-from fontTools.varLib.varStore import OnlineVarStoreBuilder
+from fontTools.varLib.multiVarStore import OnlineMultiVarStoreBuilder
 import fontTools.ttLib.tables.otTables as ot
+from fontTools.misc.vector import Vector
 from functools import partial
 from collections import defaultdict
 import struct
@@ -74,10 +75,7 @@ async def buildVarcFont(rcjkfont, glyphs):
     fbGlyphs = {".notdef": Glyph()}
     fbVariations = {}
     varcGlyphs = {}
-    varIdxMap = ot.DeltaSetIndexMap()
-    varIdxMapping = varIdxMap.mapping = []
-    varIdxMappingMap = {}
-    varStoreBuilder = OnlineVarStoreBuilder(fvarTags)
+    varStoreBuilder = OnlineMultiVarStoreBuilder(fvarTags)
 
     for glyph in glyphs.values():
         glyph_masters = glyphMasters(glyph)
@@ -90,7 +88,7 @@ async def buildVarcFont(rcjkfont, glyphs):
         for i, name in enumerate(axes.keys()):
             axesMap[name] = "%04d" % i if name not in fvarTags else name
 
-        if glyph_masters[()].glyph.path.coordinates:
+        if not glyph_masters[()].glyph.components:
             # Simple glyph...
 
             fbGlyphs[glyph.name], fbVariations[glyph.name] = await buildFlatGlyph(
@@ -130,44 +128,27 @@ async def buildVarcFont(rcjkfont, glyphs):
         varStoreBuilder.setModel(model)
 
         for ci, rec in enumerate(componentRecords):
-            allCoordinateMasters = []
-            allTransformMasters = []
+            allMasterValues = []
             for loc, layer in glyph_masters.items():
                 component = layer.glyph.components[ci]
 
                 coordinateMasters, transformMasters = getComponentMasters(
                     rcjkfont, component, glyphs[component.name], componentAnalysis[ci]
                 )
-                allCoordinateMasters.append(coordinateMasters)
-                allTransformMasters.append(transformMasters)
+                masterValues = []
+                allMasterValues.append(masterValues)
+                if rec.flags & VarComponentFlags.AXIS_VALUES_HAVE_VARIATION:
+                    masterValues.extend(coordinateMasters)
+                if rec.flags & VarComponentFlags.TRANSFORM_HAS_VARIATION:
+                    masterValues.extend(transformMasters)
 
             if rec.flags & (VarComponentFlags.AXIS_VALUES_HAVE_VARIATION | VarComponentFlags.TRANSFORM_HAS_VARIATION):
-                baseIdx = len(varIdxMapping)
-                vec = []
 
-                if rec.flags & VarComponentFlags.AXIS_VALUES_HAVE_VARIATION:
-                    for masterValues in zip(*allCoordinateMasters):
-                        base, varIdx = varStoreBuilder.storeMasters(masterValues)
-                        assert base == masterValues[0]
-                        vec.append(varIdx)
-
-                if rec.flags & VarComponentFlags.TRANSFORM_HAS_VARIATION:
-                    for masterValues in zip(*allTransformMasters):
-                        base, varIdx = varStoreBuilder.storeMasters(masterValues)
-                        assert base == masterValues[0]
-                        vec.append(varIdx)
-
-                existingBase = varIdxMappingMap.get(tuple(vec))
-                if existingBase is not None:
-                    rec.varIndexBase = existingBase
-                else:
-                    rec.varIndexBase = baseIdx
-                    varIdxMapping.extend(vec)
-                    varIdxMappingMap[tuple(vec)] = baseIdx
+                allMasterValues = [Vector(m) for m in allMasterValues]
+                _, rec.varIndexBase = varStoreBuilder.storeMasters(allMasterValues, round=Vector.__round__)
+                assert _ == allMasterValues[0]
 
     varStore = varStoreBuilder.finish()
-    mapping = varStore.optimize(use_NO_VARIATION_INDEX=False)
-    varIdxMapping = [mapping[i] for i in varIdxMapping]
 
     varc = newTable("VARC")
     varcTable = varc.table = ot.VARC()
@@ -179,8 +160,7 @@ async def buildVarcFont(rcjkfont, glyphs):
     varCompositeGlyphs = varcTable.VarCompositeGlyphs = ot.VarCompositeGlyphs()
     varCompositeGlyphs.glyphs = list(varcGlyphs.values())
 
-    varcTable.VarIndexMap = varIdxMap
-    varcTable.VarStore = varStore
+    varcTable.MultiVarStore = varStore
 
     fb.setupFvar(fvarAxes, [])
     fb.setupGlyf(fbGlyphs, validateGlyphFormat=False)
