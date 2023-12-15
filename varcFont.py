@@ -3,10 +3,13 @@ from rcjkTools import *
 from flatFont import buildFlatGlyph
 from component import *
 
+from fontTools.ttLib import newTable
 from fontTools.ttLib.tables._g_l_y_f import Glyph, GlyphCoordinates
 from fontTools.varLib.models import normalizeLocation, VariationModel
-from fontTools.ttLib.tables.TupleVariation import TupleVariation
+from fontTools.varLib.varStore import OnlineVarStoreBuilder
+import fontTools.ttLib.tables.otTables as ot
 from functools import partial
+from collections import defaultdict
 import struct
 
 
@@ -70,6 +73,10 @@ async def buildVarcFont(rcjkfont, glyphs):
 
     fbGlyphs = {".notdef": Glyph()}
     fbVariations = {}
+    varcGlyphs = {}
+    varIdxMap = ot.DeltaSetIndexMap()
+    varIdxMapping = varIdxMap.mapping = []
+    varStoreBuilder = OnlineVarStoreBuilder(fvarTags)
 
     for glyph in glyphs.values():
         glyph_masters = glyphMasters(glyph)
@@ -92,16 +99,13 @@ async def buildVarcFont(rcjkfont, glyphs):
 
         # VarComposite glyph...
 
+        fbGlyphs[glyph.name] = Glyph()
+
         componentAnalysis = analyzeComponents(glyph_masters, glyphs, axes, publicAxes)
 
-        #
-        # Build glyph data
-        #
-
-        b = 0, 0, 0, 0
-        data = bytearray(
-            struct.pack(">hhhhh", -2, b[0], b[1], b[2], b[3])
-        )  # Glyph header
+        glyphRecord = varcGlyphs[glyph.name] = ot.VarCompositeGlyphRecord()
+        glyphRecord.populateDefaults()
+        componentRecords = glyphRecord.components
 
         layer = next(iter(glyph_masters.values()))  # Default master
         for ci, component in enumerate(layer.glyph.components):
@@ -109,58 +113,61 @@ async def buildVarcFont(rcjkfont, glyphs):
                 component,
                 glyphs[component.name],
                 componentAnalysis[ci],
-                fvarTags,
-                reverseGlyphMap,
+                fvarAxes,
             )
-            data.extend(rec)
-
-        ttGlyph = Glyph()
-        ttGlyph.data = bytes(data)
-        fbGlyphs[glyph.name] = ttGlyph
+            componentRecords.append(rec)
 
         #
         # Build variations
         #
-
-        # Build master points
-
-        masterPoints = []
-        for loc, layer in glyph_masters.items():
-            points = []
-            for ci, component in enumerate(layer.glyph.components):
-                pts = buildComponentPoints(
-                    rcjkfont, component, glyphs[component.name], componentAnalysis[ci]
-                )
-                points.extend(pts)
-
-            masterPoints.append(GlyphCoordinates(points))
-
-        # Get deltas and supports
 
         masterLocs = list(dictifyLocation(l) for l in glyph_masters.keys())
         masterLocs = [normalizeLocation(m, axes) for m in masterLocs]
         masterLocs = [{axesMap[k]: v for k, v in loc.items()} for loc in masterLocs]
 
         model = VariationModel(masterLocs, list(axes.keys()))
+        varStoreBuilder.setModel(model)
 
-        deltas, supports = model.getDeltasAndSupports(
-            masterPoints, round=partial(GlyphCoordinates.__round__, round=round)
-        )
+        for ci, rec in enumerate(componentRecords):
+            allCoordinateMasters = []
+            allTransformMasters = []
+            for loc, layer in glyph_masters.items():
+                component = layer.glyph.components[ci]
 
-        # Build tuple variations
+                coordinateMasters, transformMasters = getComponentMasters(
+                    rcjkfont, component, glyphs[component.name], componentAnalysis[ci]
+                )
+                allCoordinateMasters.append(coordinateMasters)
+                allTransformMasters.append(transformMasters)
 
-        fbVariations[glyph.name] = []
-        for delta, support in zip(deltas[1:], supports[1:]):
-            # Allow encoding 32768 by nudging it down.
-            for i, (x, y) in enumerate(delta):
-                if x == 32768:
-                    delta[i] = 32767, y
-                if y == 32768:
-                    delta[i] = x, 32767
+            if rec.flags & VarComponentFlags.AXIS_VALUES_HAVE_VARIATION:
+                rec.locationVarIdxBase = len(varIdxMapping)
+                for masterValues in zip(*allCoordinateMasters):
+                    _, varIdx = varStoreBuilder.storeMasters(masterValues)
+                    varIdxMapping.append(varIdx)
 
-            delta.extend([(0, 0), (0, 0), (0, 0), (0, 0)])  # TODO Phantom points
-            tv = TupleVariation(support, delta)
-            fbVariations[glyph.name].append(tv)
+            if rec.flags & VarComponentFlags.TRANSFORM_HAS_VARIATION:
+                rec.transformVarIdxBase = len(varIdxMapping)
+                for masterValues in zip(*allTransformMasters):
+                    _, varIdx = varStoreBuilder.storeMasters(masterValues)
+                    varIdxMapping.append(varIdx)
+
+    varStore = varStoreBuilder.finish()
+    mapping = varStore.optimize()
+    varIdxMapping = [mapping[i] for i in varIdxMapping]
+
+    varc = newTable("VARC")
+    varcTable = varc.table = ot.VARC()
+    varcTable.Version = 0x00010000
+
+    coverage = varcTable.Coverage = ot.Coverage()
+    coverage.glyphs = [glyph for glyph in varcGlyphs.keys()]
+
+    varCompositeGlyphs = varcTable.VarCompositeGlyphs = ot.VarCompositeGlyphs()
+    varCompositeGlyphs.items = list(varcGlyphs.values())
+
+    varcTable.VarIndexMap = varIdxMap
+    varcTable.VarStore = varStore
 
     fb.setupFvar(fvarAxes, [])
     fb.setupGlyf(fbGlyphs, validateGlyphFormat=False)
@@ -168,4 +175,5 @@ async def buildVarcFont(rcjkfont, glyphs):
     recalcSimpleGlyphBounds(fb)
     fixLsb(fb)
     fb.font.recalcBBoxes = False
+    fb.font["VARC"] = varc
     fb.save("varc.ttf")

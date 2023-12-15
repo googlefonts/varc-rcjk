@@ -1,6 +1,7 @@
 from fontTools.misc.roundTools import otRound
 from fontTools.misc.fixedTools import floatToFixed as fl2fi
 from fontTools.varLib.models import normalizeLocation
+from fontTools.ttLib.tables.otTables import VarComponentRecord, VarComponentFlags
 from rcjkTools import *
 import struct
 
@@ -26,6 +27,37 @@ class ComponentAnalysis:
         self.coordinateHave = set()
         self.coordinatesReset = None
         self.transformHave = TransformHave()
+        self.transformVaries = False
+
+    def getFlags(self):
+        flags = 0
+        if self.transformHave.have_translateX:
+            flags |= VarComponentFlags.HAVE_TRANSLATE_X
+        if self.transformHave.have_translateY:
+            flags |= VarComponentFlags.HAVE_TRANSLATE_Y
+        if self.transformHave.have_rotation:
+            flags |= VarComponentFlags.HAVE_ROTATION
+        if self.transformHave.have_scaleX:
+            flags |= VarComponentFlags.HAVE_SCALE_X
+        if self.transformHave.have_scaleY:
+            flags |= VarComponentFlags.HAVE_SCALE_Y
+        if self.transformHave.have_skewX:
+            flags |= VarComponentFlags.HAVE_SKEW_X
+        if self.transformHave.have_skewY:
+            flags |= VarComponentFlags.HAVE_SKEW_Y
+        if self.transformHave.have_tcenterX:
+            flags |= VarComponentFlags.HAVE_TCENTER_X
+        if self.transformHave.have_tcenterY:
+            flags |= VarComponentFlags.HAVE_TCENTER_Y
+
+        if self.transformVaries:
+            flags |= VarComponentFlags.TRANSFORM_HAS_VARIATION
+        if self.coordinateVaries:
+            flags |= VarComponentFlags.AXIS_VALUES_HAVE_VARIATION
+        if self.coordinatesReset:
+            flags |= VarComponentFlags.RESET_UNSPECIFIED_AXES
+
+        return flags
 
 
 def analyzeComponents(glyph_masters, glyphs, glyphAxes, publicAxes):
@@ -59,6 +91,8 @@ def analyzeComponents(glyph_masters, glyphs, glyphAxes, publicAxes):
         for i, component in enumerate(layer.glyph.components):
             ca = cas[i]
             t = component.transformation
+            if t != defaultComponents[i].transformation:
+                ca.transformVaries = True
             if otRound(t.translateX):
                 ca.transformHave.have_translateX = True
             if otRound(t.translateY):
@@ -67,7 +101,9 @@ def analyzeComponents(glyph_masters, glyphs, glyphAxes, publicAxes):
                 ca.transformHave.have_rotation = True
             if fl2fi(t.scaleX, 10) != 1 << 10:
                 ca.transformHave.have_scaleX = True
-            if fl2fi(t.scaleY, 10) != 1 << 10:
+            if fl2fi(t.scaleY, 10) != 1 << 10 and fl2fi(t.scaleY, 10) != fl2fi(
+                t.scaleX, 10
+            ):
                 ca.transformHave.have_scaleY = True
             if fl2fi(t.skewX / 180.0, 12):
                 ca.transformHave.have_skewX = True
@@ -111,7 +147,30 @@ def analyzeComponents(glyph_masters, glyphs, glyphAxes, publicAxes):
     return cas
 
 
-def buildComponentPoints(rcjkfont, component, componentGlyph, componentAnalysis):
+def buildComponentRecord(component, componentGlyph, componentAnalysis, fvarTags):
+    ca = componentAnalysis
+
+    componentAxes = {
+        axis.name: (axis.minValue, axis.defaultValue, axis.maxValue)
+        for axis in componentGlyph.axes
+    }
+    coords = component.location
+    coords = normalizeLocation(coords, componentAxes)
+
+    axesMap = {}
+    for i, name in enumerate(componentAxes.keys()):
+        axesMap[name] = "%4d" % i if name not in fvarTags else name
+
+    rec = VarComponentRecord()
+    rec.glyphName = component.name
+    rec.transform = component.transformation
+    rec.location = {axesMap[tag]: v for tag, v in coords.items()}
+    rec.flags = ca.getFlags()
+
+    return rec
+
+
+def getComponentMasters(rcjkfont, component, componentGlyph, componentAnalysis):
     ca = componentAnalysis
 
     componentAxes = {
@@ -123,131 +182,32 @@ def buildComponentPoints(rcjkfont, component, componentGlyph, componentAnalysis)
 
     t = component.transformation
 
-    points = []
+    coordinateMasters, transformMasters = [], []
 
     if ca.coordinateVaries:
         for tag in componentAxes.keys():
             if tag in ca.coordinateHave:
                 coord = coords.get(tag, 0)
-                points.append((fl2fi(coord, 14), 0))
+                coordinateMasters.append(fl2fi(coord, 14))
 
     c = ca.transformHave
-    if c.have_translateX or c.have_translateY:
-        points.append((t.translateX, t.translateY))
-    if c.have_rotation:
-        points.append((fl2fi(t.rotation / 180.0, 12), 0))
-    if c.have_scaleX or c.have_scaleY:
-        points.append((fl2fi(t.scaleX, 10), fl2fi(t.scaleY, 10)))
-    if c.have_skewX or c.have_skewY:
-        points.append((fl2fi(t.skewX / 180.0, 12), fl2fi(t.skewY / 180.0, 12)))
-    if c.have_tcenterX or c.have_tcenterY:
-        points.append((t.tCenterX, t.tCenterY))
-
-    return points
-
-
-def buildComponentRecord(
-    component, componentGlyph, componentAnalysis, fvarTags, reverseGlyphMap
-):
-    ca = componentAnalysis
-
-    componentAxes = {
-        axis.name: (axis.minValue, axis.defaultValue, axis.maxValue)
-        for axis in componentGlyph.axes
-    }
-    coords = component.location
-    coords = normalizeLocation(coords, componentAxes)
-
-    flag = 0
-
-    numAxes = struct.pack(">B", len(ca.coordinateHave))
-
-    gid = reverseGlyphMap[component.name]
-    if gid <= 65535:
-        # gid16
-        gid = struct.pack(">H", gid)
-    else:
-        # gid24
-        gid = struct.pack(">L", gid)[1:]
-        flag |= 1 << 12
-
-    if ca.coordinatesReset:
-        flag |= 1 << 14
-
-    axisIndices = []
-    for i, tag in enumerate(componentAxes.keys()):
-        if tag not in ca.coordinateHave:
-            continue
-        name = "%4d" % i if tag not in fvarTags else tag
-        axisIndices.append(fvarTags.index(name))
-
-    if ca.coordinateVaries:
-        flag |= 1 << 13
-
-    if all(v <= 255 for v in axisIndices):
-        axisIndices = b"".join(struct.pack(">B", v) for v in axisIndices)
-    else:
-        axisIndices = b"".join(struct.pack(">H", v) for v in axisIndices)
-        flag |= 1 << 1
-
-    axisValues = b"".join(
-        struct.pack(">h", fl2fi(coords.get(tag, 0), 14))
-        for tag in componentAxes.keys()
-        if tag in ca.coordinateHave
-    )
-
-    c = ca.transformHave
-
-    t = component.transformation
-
-    translateX = (
-        translateY
-    ) = rotation = scaleX = scaleY = skewX = skewY = tcenterX = tcenterY = b""
     if c.have_translateX:
-        translateX = struct.pack(">h", otRound(t.translateX))
-        flag |= 1 << 3
+        transformMasters.append(otRound(t.translateX))
     if c.have_translateY:
-        translateY = struct.pack(">h", otRound(t.translateY))
-        flag |= 1 << 4
+        transformMasters.append(otRound(t.translateY))
     if c.have_rotation:
-        rotation = struct.pack(">h", fl2fi(t.rotation / 180.0, 12))
-        flag |= 1 << 5
+        transformMasters.append(fl2fi(t.rotation / 180.0, 12))
     if c.have_scaleX:
-        scaleX = struct.pack(">h", fl2fi(t.scaleX, 10))
-        flag |= 1 << 6
+        transformMasters.append(fl2fi(t.scaleX, 10))
     if c.have_scaleY:
-        if not c.have_scaleX or fl2fi(t.scaleY, 10) != fl2fi(t.scaleX, 10):
-            scaleY = struct.pack(">h", fl2fi(t.scaleY, 10))
-            flag |= 1 << 7
-        else:
-            flag |= 1 << 2
+        transformMasters.append(fl2fi(t.scaleY, 10))
     if c.have_skewX:
-        skewX = struct.pack(">h", fl2fi(t.skewX / 180.0, 12))
-        flag |= 1 << 8
+        transformMasters.append(fl2fi(t.skewX / 180.0, 12))
     if c.have_skewY:
-        skewY = struct.pack(">h", fl2fi(t.skewY / 180.0, 12))
-        flag |= 1 << 9
+        transformMasters.append(fl2fi(t.skewY / 180.0, 12))
     if c.have_tcenterX:
-        tcenterX = struct.pack(">h", otRound(t.tCenterX))
-        flag |= 1 << 10
+        transformMasters.append(otRound(t.tCenterX))
     if c.have_tcenterY:
-        tcenterY = struct.pack(">h", otRound(t.tCenterY))
-        flag |= 1 << 11
+        transformMasters.append(otRound(t.tCenterY))
 
-    transform = (
-        translateX
-        + translateY
-        + rotation
-        + scaleX
-        + scaleY
-        + skewX
-        + skewY
-        + tcenterX
-        + tcenterY
-    )
-
-    flag = struct.pack(">H", flag)
-
-    rec = flag + numAxes + gid + axisIndices + axisValues + transform
-
-    return rec
+    return coordinateMasters, transformMasters
