@@ -145,16 +145,18 @@ async def buildVarcFont(rcjkfont, glyphs):
 
                 if rec.flags & VarComponentFlags.AXIS_VALUES_HAVE_VARIATION:
                     for masterValues in zip(*allCoordinateMasters):
-                        _, varIdx = varStoreBuilder.storeMasters(masterValues)
+                        base, varIdx = varStoreBuilder.storeMasters(masterValues)
+                        assert base == masterValues[0]
                         varIdxMapping.append(varIdx)
 
                 if rec.flags & VarComponentFlags.TRANSFORM_HAS_VARIATION:
                     for masterValues in zip(*allTransformMasters):
-                        _, varIdx = varStoreBuilder.storeMasters(masterValues)
+                        base, varIdx = varStoreBuilder.storeMasters(masterValues)
+                        assert base == masterValues[0]
                         varIdxMapping.append(varIdx)
 
     varStore = varStoreBuilder.finish()
-    mapping = varStore.optimize()
+    mapping = varStore.optimize(use_NO_VARIATION_INDEX=False)
     varIdxMapping = [mapping[i] for i in varIdxMapping]
 
     varc = newTable("VARC")
