@@ -159,7 +159,7 @@ def buildComponentRecord(component, componentGlyph, componentAnalysis, fvarTags)
 
     axesMap = {}
     for i, name in enumerate(componentAxes.keys()):
-        axesMap[name] = "%4d" % i if name not in fvarTags else name
+        axesMap[name] = "%04d" % i if name not in fvarTags else name
 
     rec = VarComponent()
     rec.glyphName = component.name

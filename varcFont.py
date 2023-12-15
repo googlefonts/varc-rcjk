@@ -51,7 +51,7 @@ def setupFvarAxes(rcjkfont, glyphs):
         maxAxes = max(maxAxes, len(axes))
 
     for i in range(maxAxes):
-        tag = "%4d" % i
+        tag = "%04d" % i
         fvarAxes.append((tag, -1, 0, 1, tag))
 
     return fvarAxes
@@ -87,7 +87,7 @@ async def buildVarcFont(rcjkfont, glyphs):
         }
         axesMap = {}
         for i, name in enumerate(axes.keys()):
-            axesMap[name] = "%4d" % i if name not in fvarTags else name
+            axesMap[name] = "%04d" % i if name not in fvarTags else name
 
         if glyph_masters[()].glyph.path.coordinates:
             # Simple glyph...
