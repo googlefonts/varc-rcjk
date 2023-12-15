@@ -74,9 +74,6 @@ async def buildVarcFont(rcjkfont, glyphs):
     fbGlyphs = {".notdef": Glyph()}
     fbVariations = {}
     varcGlyphs = {}
-    varIdxMap = ot.DeltaSetIndexMap()
-    varIdxMapping = varIdxMap.mapping = []
-    varIdxMappingMap = {}
     varStoreBuilder = OnlineVarStoreBuilder(fvarTags)
 
     for glyph in glyphs.values():
@@ -142,32 +139,20 @@ async def buildVarcFont(rcjkfont, glyphs):
                 allTransformMasters.append(transformMasters)
 
             if rec.flags & (VarComponentFlags.AXIS_VALUES_HAVE_VARIATION | VarComponentFlags.TRANSFORM_HAS_VARIATION):
-                baseIdx = len(varIdxMapping)
-                vec = []
+                allMasterValues = []
 
                 if rec.flags & VarComponentFlags.AXIS_VALUES_HAVE_VARIATION:
                     for masterValues in zip(*allCoordinateMasters):
-                        base, varIdx = varStoreBuilder.storeMasters(masterValues)
-                        assert base == masterValues[0]
-                        vec.append(varIdx)
+                        allMasterValues.append(masterValues)
 
                 if rec.flags & VarComponentFlags.TRANSFORM_HAS_VARIATION:
                     for masterValues in zip(*allTransformMasters):
-                        base, varIdx = varStoreBuilder.storeMasters(masterValues)
-                        assert base == masterValues[0]
-                        vec.append(varIdx)
+                        allMasterValues.append(masterValues)
 
-                existingBase = varIdxMappingMap.get(tuple(vec))
-                if existingBase is not None:
-                    rec.varIndexBase = existingBase
-                else:
-                    rec.varIndexBase = baseIdx
-                    varIdxMapping.extend(vec)
-                    varIdxMappingMap[tuple(vec)] = baseIdx
+                base_list, varIdx = varStoreBuilder.storeMastersMany(allMasterValues)
+                rec.varIndexBase = varIdx
 
     varStore = varStoreBuilder.finish()
-    mapping = varStore.optimize(use_NO_VARIATION_INDEX=False)
-    varIdxMapping = [mapping[i] for i in varIdxMapping]
 
     varc = newTable("VARC")
     varcTable = varc.table = ot.VARC()
@@ -179,7 +164,6 @@ async def buildVarcFont(rcjkfont, glyphs):
     varCompositeGlyphs = varcTable.VarCompositeGlyphs = ot.VarCompositeGlyphs()
     varCompositeGlyphs.glyphs = list(varcGlyphs.values())
 
-    varcTable.VarIndexMap = varIdxMap
     varcTable.VarStore = varStore
 
     fb.setupFvar(fvarAxes, [])
