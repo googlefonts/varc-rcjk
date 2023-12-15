@@ -140,17 +140,18 @@ async def buildVarcFont(rcjkfont, glyphs):
                 allCoordinateMasters.append(coordinateMasters)
                 allTransformMasters.append(transformMasters)
 
-            if rec.flags & VarComponentFlags.AXIS_VALUES_HAVE_VARIATION:
-                rec.locationVarIdxBase = len(varIdxMapping)
-                for masterValues in zip(*allCoordinateMasters):
-                    _, varIdx = varStoreBuilder.storeMasters(masterValues)
-                    varIdxMapping.append(varIdx)
+            if rec.flags & (VarComponentFlags.AXIS_VALUES_HAVE_VARIATION | VarComponentFlags.TRANSFORM_HAS_VARIATION):
+                rec.varIndexBase = len(varIdxMapping)
 
-            if rec.flags & VarComponentFlags.TRANSFORM_HAS_VARIATION:
-                rec.transformVarIdxBase = len(varIdxMapping)
-                for masterValues in zip(*allTransformMasters):
-                    _, varIdx = varStoreBuilder.storeMasters(masterValues)
-                    varIdxMapping.append(varIdx)
+                if rec.flags & VarComponentFlags.AXIS_VALUES_HAVE_VARIATION:
+                    for masterValues in zip(*allCoordinateMasters):
+                        _, varIdx = varStoreBuilder.storeMasters(masterValues)
+                        varIdxMapping.append(varIdx)
+
+                if rec.flags & VarComponentFlags.TRANSFORM_HAS_VARIATION:
+                    for masterValues in zip(*allTransformMasters):
+                        _, varIdx = varStoreBuilder.storeMasters(masterValues)
+                        varIdxMapping.append(varIdx)
 
     varStore = varStoreBuilder.finish()
     mapping = varStore.optimize()
