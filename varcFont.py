@@ -76,6 +76,7 @@ async def buildVarcFont(rcjkfont, glyphs):
     varcGlyphs = {}
     varIdxMap = ot.DeltaSetIndexMap()
     varIdxMapping = varIdxMap.mapping = []
+    varIdxMappingMap = {}
     varStoreBuilder = OnlineVarStoreBuilder(fvarTags)
 
     for glyph in glyphs.values():
@@ -141,19 +142,28 @@ async def buildVarcFont(rcjkfont, glyphs):
                 allTransformMasters.append(transformMasters)
 
             if rec.flags & (VarComponentFlags.AXIS_VALUES_HAVE_VARIATION | VarComponentFlags.TRANSFORM_HAS_VARIATION):
-                rec.varIndexBase = len(varIdxMapping)
+                baseIdx = len(varIdxMapping)
+                vec = []
 
                 if rec.flags & VarComponentFlags.AXIS_VALUES_HAVE_VARIATION:
                     for masterValues in zip(*allCoordinateMasters):
                         base, varIdx = varStoreBuilder.storeMasters(masterValues)
                         assert base == masterValues[0]
-                        varIdxMapping.append(varIdx)
+                        vec.append(varIdx)
 
                 if rec.flags & VarComponentFlags.TRANSFORM_HAS_VARIATION:
                     for masterValues in zip(*allTransformMasters):
                         base, varIdx = varStoreBuilder.storeMasters(masterValues)
                         assert base == masterValues[0]
-                        varIdxMapping.append(varIdx)
+                        vec.append(varIdx)
+
+                existingBase = varIdxMappingMap.get(tuple(vec))
+                if existingBase is not None:
+                    rec.varIndexBase = existingBase
+                else:
+                    rec.varIndexBase = baseIdx
+                    varIdxMapping.extend(vec)
+                    varIdxMappingMap[tuple(vec)] = baseIdx
 
     varStore = varStoreBuilder.finish()
     mapping = varStore.optimize(use_NO_VARIATION_INDEX=False)
