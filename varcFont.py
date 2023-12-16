@@ -174,6 +174,7 @@ async def buildVarcFont(rcjkfont, glyphs):
     fb.setupGlyf(fbGlyphs, validateGlyphFormat=False)
     fb.setupGvar(fbVariations)
     recalcSimpleGlyphBounds(fb)
-    fixLsb(fb)  # XXX Still needed?
+    fixLsb(fb)
     fb.font["VARC"] = varc
+    print("Saving varc.ttf")
     fb.save("varc.ttf")
