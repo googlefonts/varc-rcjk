@@ -165,7 +165,11 @@ def buildComponentRecord(component, componentGlyph, componentAnalysis, fvarTags)
     rec = VarComponent()
     rec.glyphName = component.name
     rec.transform = component.transformation
-    rec.location = {axesMap[tag]: coords.get(tag, 0) for tag in componentAxes if tag in ca.coordinateHave}
+    rec.location = {
+        axesMap[tag]: coords.get(tag, 0)
+        for tag in componentAxes
+        if tag in ca.coordinateHave
+    }
     if not rec.location:
         assert not ca.coordinateVaries
     rec.flags = ca.getFlags()
