@@ -144,12 +144,16 @@ async def buildVarcFont(rcjkfont, glyphs):
 
             if rec.flags & VarComponentFlags.AXIS_VALUES_HAVE_VARIATION:
                 allLocationMasterValues = [Vector(m) for m in allLocationMasterValues]
-                _, rec.locationVarIndex = varStoreBuilder.storeMasters(allLocationMasterValues, round=Vector.__round__)
+                _, rec.locationVarIndex = varStoreBuilder.storeMasters(
+                    allLocationMasterValues, round=Vector.__round__
+                )
                 assert _ == allLocationMasterValues[0]
 
             if rec.flags & VarComponentFlags.TRANSFORM_HAS_VARIATION:
                 allTransformMasterValues = [Vector(m) for m in allTransformMasterValues]
-                _, rec.transformVarIndex = varStoreBuilder.storeMasters(allTransformMasterValues, round=Vector.__round__)
+                _, rec.transformVarIndex = varStoreBuilder.storeMasters(
+                    allTransformMasterValues, round=Vector.__round__
+                )
                 assert _ == allTransformMasterValues[0]
 
     varStore = varStoreBuilder.finish()
@@ -170,6 +174,6 @@ async def buildVarcFont(rcjkfont, glyphs):
     fb.setupGlyf(fbGlyphs, validateGlyphFormat=False)
     fb.setupGvar(fbVariations)
     recalcSimpleGlyphBounds(fb)
-    fixLsb(fb)
+    fixLsb(fb)  # XXX Still needed?
     fb.font["VARC"] = varc
     fb.save("varc.ttf")
