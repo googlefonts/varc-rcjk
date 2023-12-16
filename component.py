@@ -133,7 +133,7 @@ def analyzeComponents(glyph_masters, glyphs, glyphAxes, publicAxes):
             ca.coordinateHaveReset if ca.coordinatesReset else ca.coordinateHaveOverlay
         )
 
-    for layer in glyph_masters.values():
+    for layer in list(glyph_masters.values())[1:]:
         for i, component in enumerate(layer.glyph.components):
             ca = cas[i]
             loc = component.location
@@ -166,6 +166,8 @@ def buildComponentRecord(component, componentGlyph, componentAnalysis, fvarTags)
     rec.glyphName = component.name
     rec.transform = component.transformation
     rec.location = {axesMap[tag]: coords.get(tag, 0) for tag in componentAxes if tag in ca.coordinateHave}
+    if not rec.location:
+        assert not ca.coordinateVaries
     rec.flags = ca.getFlags()
 
     return rec
