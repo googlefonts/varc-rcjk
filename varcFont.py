@@ -140,7 +140,7 @@ async def buildVarcFont(rcjkfont, glyphs):
                     allLocationMasterValues.append(coordinateMasters)
 
                 if rec.flags & VarComponentFlags.TRANSFORM_HAS_VARIATION:
-                    allTransformMasterValues.append(coordinateMasters)
+                    allTransformMasterValues.append(transformMasters)
 
             if rec.flags & VarComponentFlags.AXIS_VALUES_HAVE_VARIATION:
                 allLocationMasterValues = [Vector(m) for m in allLocationMasterValues]

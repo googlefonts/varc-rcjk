@@ -139,6 +139,7 @@ def analyzeComponents(glyph_masters, glyphs, glyphAxes, publicAxes):
             loc = component.location
             loc = normalizeLocation(loc, allComponentAxes[i])
             for tag in ca.coordinates:
+                # XXX Is this logic correct for coordinatesReset?
                 if tag in ca.coordinateHave and loc.get(tag, 0) != defaultLocations[
                     i
                 ].get(tag, 0):
@@ -158,13 +159,13 @@ def buildComponentRecord(component, componentGlyph, componentAnalysis, fvarTags)
     coords = normalizeLocation(coords, componentAxes)
 
     axesMap = {}
-    for i, name in enumerate(componentAxes.keys()):
+    for i, name in enumerate(componentAxes):
         axesMap[name] = "%04d" % i if name not in fvarTags else name
 
     rec = VarComponent()
     rec.glyphName = component.name
     rec.transform = component.transformation
-    rec.location = {axesMap[tag]: v for tag, v in coords.items()}
+    rec.location = {axesMap[tag]: coords.get(tag, 0) for tag in componentAxes if tag in ca.coordinateHave}
     rec.flags = ca.getFlags()
 
     return rec
@@ -185,29 +186,30 @@ def getComponentMasters(rcjkfont, component, componentGlyph, componentAnalysis):
     coordinateMasters, transformMasters = [], []
 
     if ca.coordinateVaries:
-        for tag in componentAxes.keys():
+        for tag in componentAxes:
             if tag in ca.coordinateHave:
                 coord = coords.get(tag, 0)
                 coordinateMasters.append(fl2fi(coord, 14))
 
-    c = ca.transformHave
-    if c.have_translateX:
-        transformMasters.append(otRound(t.translateX))
-    if c.have_translateY:
-        transformMasters.append(otRound(t.translateY))
-    if c.have_rotation:
-        transformMasters.append(fl2fi(t.rotation / 180.0, 12))
-    if c.have_scaleX:
-        transformMasters.append(fl2fi(t.scaleX, 10))
-    if c.have_scaleY:
-        transformMasters.append(fl2fi(t.scaleY, 10))
-    if c.have_skewX:
-        transformMasters.append(fl2fi(t.skewX / 180.0, 12))
-    if c.have_skewY:
-        transformMasters.append(fl2fi(t.skewY / 180.0, 12))
-    if c.have_tcenterX:
-        transformMasters.append(otRound(t.tCenterX))
-    if c.have_tcenterY:
-        transformMasters.append(otRound(t.tCenterY))
+    if ca.transformVaries:
+        c = ca.transformHave
+        if c.have_translateX:
+            transformMasters.append(otRound(t.translateX))
+        if c.have_translateY:
+            transformMasters.append(otRound(t.translateY))
+        if c.have_rotation:
+            transformMasters.append(fl2fi(t.rotation / 180.0, 12))
+        if c.have_scaleX:
+            transformMasters.append(fl2fi(t.scaleX, 10))
+        if c.have_scaleY:
+            transformMasters.append(fl2fi(t.scaleY, 10))
+        if c.have_skewX:
+            transformMasters.append(fl2fi(t.skewX / 180.0, 12))
+        if c.have_skewY:
+            transformMasters.append(fl2fi(t.skewY / 180.0, 12))
+        if c.have_tcenterX:
+            transformMasters.append(otRound(t.tCenterX))
+        if c.have_tcenterY:
+            transformMasters.append(otRound(t.tCenterY))
 
     return coordinateMasters, transformMasters
