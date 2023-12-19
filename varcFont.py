@@ -175,7 +175,7 @@ async def buildVarcFont(rcjkfont, glyphs):
                 rec.AxisValuesIndex = None
 
             transformMasterValues = allTransformMasterValues[0]
-            if ca.transformHave.transform and all(transformMasterValues == m for m in allTransformMasterValues):
+            if ca.transformHave.transform or not all(transformMasterValues == m for m in allTransformMasterValues):
 
                 if allTransformMasterValues in transformMap:
                     idx = transformMap[allTransformMasterValues]
@@ -190,6 +190,7 @@ async def buildVarcFont(rcjkfont, glyphs):
 
     axisIndices = ot.AxisIndicesList()
     axisIndices.Item = axisIndicesList
+    print("AxisIndicesList:", len(axisIndicesList))
 
     axisValues = ot.AxisValuesList()
     axisValues.VarIndices = []
@@ -210,6 +211,7 @@ async def buildVarcFont(rcjkfont, glyphs):
     while axisValues.VarIndices and axisValues.VarIndices[-1] == ot.NO_VARIATION_INDEX:
         axisValues.VarIndices.pop()
     axisValues.VarIndicesCount = len(axisValues.VarIndices)
+    print("AxisValuesList:", len(axisValues.Item), len(axisValues.VarIndices))
 
     transforms = ot.TransformList()
     transforms.VarTransform = []
@@ -219,7 +221,10 @@ async def buildVarcFont(rcjkfont, glyphs):
         t.flags = flags
         t.transform = transform
         t.varIndex = varStoreBuilder.storeMasters([Vector(l) for l in lst], round=Vector.__round__)[1]
+        if t.varIndex == ot.NO_VARIATION_INDEX:
+            t.flags &= ~VarTransformFlags.HAVE_VARIATIONS
         transforms.VarTransform.append(t)
+    print("TransformList:", len(transforms.VarTransform))
 
     varStore = varStoreBuilder.finish()
 

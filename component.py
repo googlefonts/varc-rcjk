@@ -29,7 +29,6 @@ class ComponentAnalysis:
         self.coordinateHave = set()
         self.coordinatesReset = None
         self.transformHave = TransformHave()
-        self.transformVaries = False
 
     def getTransformFlags(self):
         flags = 0
@@ -51,8 +50,6 @@ class ComponentAnalysis:
             flags |= VarTransformFlags.HAVE_TCENTER_X
         if self.transformHave.have_tcenterY:
             flags |= VarTransformFlags.HAVE_TCENTER_Y
-        if self.transformVaries:
-            flags |= VarTransformFlags.HAVE_VARIATIONS
 
         return flags
 
@@ -96,8 +93,6 @@ def analyzeComponents(glyph_masters, glyphs, glyphAxes, publicAxes):
         for i, component in enumerate(layer.glyph.components):
             ca = cas[i]
             t = component.transformation
-            if t != defaultComponents[i].transformation:
-                ca.transformVaries = True
             ca.transformHave.transform = t
             if otRound(t.translateX):
                 ca.transformHave.have_translateX = True
