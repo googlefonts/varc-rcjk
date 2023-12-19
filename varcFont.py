@@ -75,9 +75,17 @@ async def buildVarcFont(rcjkfont, glyphs):
     fbGlyphs = {".notdef": Glyph()}
     fbVariations = {}
     varcGlyphs = {}
+    axisIndicesList = []
+    axisIndicesMap = {}
+    axisValuesList = []
+    axisValuesMap = {}
+    transformList = []
+    transformMap = {}
+
     varStoreBuilder = OnlineMultiVarStoreBuilder(fvarTags)
 
-    for glyph in glyphs.values():
+    for glyphName, glyph in glyphs.items():
+        print("Processing glyph", glyphName)
         glyph_masters = glyphMasters(glyph)
 
         axes = {
@@ -107,12 +115,10 @@ async def buildVarcFont(rcjkfont, glyphs):
         componentRecords = glyphRecord.components
 
         layer = next(iter(glyph_masters.values()))  # Default master
-        for ci, component in enumerate(layer.glyph.components):
+        for ci, (component, ca) in enumerate(zip(layer.glyph.components, componentAnalysis)):
             rec = buildComponentRecord(
                 component,
-                glyphs[component.name],
-                componentAnalysis[ci],
-                fvarAxes,
+                ca,
             )
             componentRecords.append(rec)
 
@@ -125,38 +131,88 @@ async def buildVarcFont(rcjkfont, glyphs):
         masterLocs = [{axesMap[k]: v for k, v in loc.items()} for loc in masterLocs]
 
         model = VariationModel(masterLocs, list(axes.keys()))
-        varStoreBuilder.setModel(model)
 
-        for ci, rec in enumerate(componentRecords):
-            allLocationMasterValues = []
+        for ci, (rec, ca) in enumerate(zip(componentRecords, componentAnalysis)):
+            allAxisIndexMasterValues = []
+            allAxisValueMasterValues = []
             allTransformMasterValues = []
             for loc, layer in glyph_masters.items():
                 component = layer.glyph.components[ci]
 
-                coordinateMasters, transformMasters = getComponentMasters(
+                axisIndexMasters, axisValueMasters, transformMasters = getComponentMasters(
                     rcjkfont, component, glyphs[component.name], componentAnalysis[ci]
                 )
-                if rec.flags & VarComponentFlags.AXIS_VALUES_HAVE_VARIATION:
-                    allLocationMasterValues.append(coordinateMasters)
+                allAxisIndexMasterValues.append(axisIndexMasters)
+                allAxisValueMasterValues.append(axisValueMasters)
+                allTransformMasterValues.append(transformMasters)
 
-                if rec.flags & VarComponentFlags.TRANSFORM_HAS_VARIATION:
-                    allTransformMasterValues.append(transformMasters)
+            allAxisIndexMasterValues = tuple(allAxisIndexMasterValues)
+            allAxisValueMasterValues = tuple(allAxisValueMasterValues)
+            allTransformMasterValues = tuple(allTransformMasterValues)
 
-            if rec.flags & VarComponentFlags.AXIS_VALUES_HAVE_VARIATION:
-                allLocationMasterValues = [Vector(m) for m in allLocationMasterValues]
-                _, rec.locationVarIndex = varStoreBuilder.storeMasters(
-                    allLocationMasterValues, round=Vector.__round__
-                )
-                assert _ == allLocationMasterValues[0]
+            axisIndexMasterValues = allAxisIndexMasterValues[0]
+            assert all(axisIndexMasterValues == m for m in allAxisIndexMasterValues)
+            if len(axisIndexMasterValues):
+                if axisIndexMasterValues in axisIndicesMap:
+                    idx = axisIndicesMap[axisIndexMasterValues]
+                else:
+                    idx = len(axisIndicesList)
+                    axisIndicesList.append(axisIndexMasterValues)
+                    axisIndicesMap[axisIndexMasterValues] = idx
+                rec.AxisIndicesIndex = idx
+            else:
+                rec.AxisIndicesIndex = None
 
-            if rec.flags & VarComponentFlags.TRANSFORM_HAS_VARIATION:
-                allTransformMasterValues = [Vector(m) for m in allTransformMasterValues]
-                _, rec.transformVarIndex = varStoreBuilder.storeMasters(
-                    allTransformMasterValues, round=Vector.__round__
-                )
-                assert _ == allTransformMasterValues[0]
+            if rec.AxisIndicesIndex is not None:
+                if allAxisValueMasterValues in axisValuesMap:
+                    idx = axisValuesMap[allAxisValueMasterValues]
+                else:
+                    idx = len(axisValuesList)
+                    axisValuesList.append((model, allAxisValueMasterValues))
+                    axisValuesMap[allAxisValueMasterValues] = idx
+                rec.AxisValuesIndex = idx
+            else:
+                rec.AxisValuesIndex = None
+
+            transformMasterValues = allTransformMasterValues[0]
+            if ca.transformHave.transform and all(transformMasterValues == m for m in allTransformMasterValues):
+                if allTransformMasterValues in transformMap:
+                    idx = transformMap[allTransformMasterValues]
+                else:
+                    idx = len(transformList)
+                    transformList.append((model, allTransformMasterValues, ca.getTransformFlags(), ca.transformHave.transform))
+                    transformMap[allTransformMasterValues] = idx
+                rec.TransformIndex = idx
+            else:
+                rec.TransformIndex = None
+
+
+    axisIndices = ot.AxisIndicesList()
+    axisIndices.Item = axisIndicesList
+
+    axisValues = ot.AxisValuesList()
+    axisValues.VarIndices = []
+    axisValues.Item = [l[1][0] for l in axisValuesList]
+    # Store the rest in the varStore
+    for model,lst in axisValuesList:
+        varStoreBuilder.setModel(model)
+        axisValues.VarIndices.append(varStoreBuilder.storeMasters([Vector(l) for l in lst], round=Vector.__round__)[1])
+    axisValues.VarIndicesCount = len(axisValues.VarIndices)
+
+    transforms = ot.TransformList()
+    transforms.VarTransform = []
+    for model, lst, flags, transform in transformList:
+        varStoreBuilder.setModel(model)
+        t = ot.VarTransform()
+        t.flags = flags
+        t.transform = transform
+        t.varIndex = varStoreBuilder.storeMasters([Vector(l) for l in lst], round=Vector.__round__)[1]
+        transforms.VarTransform.append(t)
 
     varStore = varStoreBuilder.finish()
+
+    varCompositeGlyphs = ot.VarCompositeGlyphs()
+    varCompositeGlyphs.VarCompositeGlyph = list(varcGlyphs.values())
 
     varc = newTable("VARC")
     varcTable = varc.table = ot.VARC()
@@ -165,10 +221,11 @@ async def buildVarcFont(rcjkfont, glyphs):
     coverage = varcTable.Coverage = ot.Coverage()
     coverage.glyphs = [glyph for glyph in varcGlyphs.keys()]
 
-    varCompositeGlyphs = varcTable.VarCompositeGlyphs = ot.VarCompositeGlyphs()
-    varCompositeGlyphs.glyphs = list(varcGlyphs.values())
-
     varcTable.MultiVarStore = varStore
+    varcTable.AxisIndicesList = axisIndices
+    varcTable.AxisValuesList = axisValues
+    varcTable.TransformList = transforms
+    varcTable.VarCompositeGlyphs = varCompositeGlyphs
 
     fb.setupFvar(fvarAxes, [])
     fb.setupGlyf(fbGlyphs, validateGlyphFormat=False)
