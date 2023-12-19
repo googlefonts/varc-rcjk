@@ -176,6 +176,7 @@ async def buildVarcFont(rcjkfont, glyphs):
 
             transformMasterValues = allTransformMasterValues[0]
             if ca.transformHave.transform and all(transformMasterValues == m for m in allTransformMasterValues):
+
                 if allTransformMasterValues in transformMap:
                     idx = transformMap[allTransformMasterValues]
                 else:
@@ -197,6 +198,17 @@ async def buildVarcFont(rcjkfont, glyphs):
     for model,lst in axisValuesList:
         varStoreBuilder.setModel(model)
         axisValues.VarIndices.append(varStoreBuilder.storeMasters([Vector(l) for l in lst], round=Vector.__round__)[1])
+    # Reorder the axisValuesList to put all the NO_VARIATION_INDEX values at the end
+    # so we don't have to encode them.
+    mapping = sorted(range(len(axisValues.VarIndices)), key=lambda i: axisValues.VarIndices[i])
+    axisValues.VarIndices = [axisValues.VarIndices[i] for i in mapping]
+    axisValues.Item = [axisValues.Item[i] for i in mapping]
+    for rec in varcGlyphs.values():
+        for comp in rec.components:
+            if comp.AxisValuesIndex is not None:
+                comp.AxisValuesIndex = mapping[comp.AxisValuesIndex]
+    while axisValues.VarIndices and axisValues.VarIndices[-1] == ot.NO_VARIATION_INDEX:
+        axisValues.VarIndices.pop()
     axisValues.VarIndicesCount = len(axisValues.VarIndices)
 
     transforms = ot.TransformList()
