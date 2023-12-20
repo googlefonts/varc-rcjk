@@ -42,12 +42,14 @@ def setupFvarAxes(rcjkfont, glyphs):
                 axis["name"],
             )
         )
+    fvarTags = {axis[0] for axis in fvarAxes}
 
     maxAxes = 0
     for glyph in glyphs.values():
         axes = {
             axis.name: (axis.minValue, axis.defaultValue, axis.maxValue)
             for axis in glyph.axes
+            if axis.name not in fvarTags
         }
         maxAxes = max(maxAxes, len(axes))
 
@@ -93,8 +95,13 @@ async def buildVarcFont(rcjkfont, glyphs):
             for axis in glyph.axes
         }
         axesMap = {}
-        for i, name in enumerate(axes.keys()):
-            axesMap[name] = "%04d" % i if name not in fvarTags else name
+        i = 0
+        for name in axes.keys():
+            if name in fvarTags:
+                axesMap[name] = name
+            else:
+                axesMap[name] = "%04d" % i
+                i += 1
 
         if not glyph_masters[()].glyph.components:
             # Simple glyph...
@@ -152,7 +159,7 @@ async def buildVarcFont(rcjkfont, glyphs):
 
             axisIndexMasterValues = allAxisIndexMasterValues[0]
             assert all(axisIndexMasterValues == m for m in allAxisIndexMasterValues)
-            if len(axisIndexMasterValues):
+            if axisIndexMasterValues:
                 if axisIndexMasterValues in axisIndicesMap:
                     idx = axisIndicesMap[axisIndexMasterValues]
                 else:

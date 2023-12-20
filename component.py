@@ -189,23 +189,31 @@ def getComponentMasters(rcjkfont, component, componentGlyph, componentAnalysis, 
         for axis in componentGlyph.axes
     }
     axesMap = {}
-    for i, name in enumerate(componentAxes.keys()):
-        axesMap[name] = "%04d" % i if name not in fvarTags else name
+    i = 0
+    for name in componentAxes.keys():
+        if name in fvarTags:
+            axesMap[name] = name
+        else:
+            axesMap[name] = "%04d" % i
+            i += 1
 
     coords = component.location
     coords = normalizeLocation(coords, componentAxes)
-
 
     t = component.transformation
 
     axisIndexMasters, axisValueMasters, transformMasters = [], [], []
 
-    for name in ca.coordinates:
-        if name in ca.coordinateHave:
-            coord = coords.get(name, 0)
-            i = fvarTags.index(axesMap[name])
-            axisIndexMasters.append(i)
-            axisValueMasters.append(fl2fi(coord, 14))
+    for name in ca.coordinateHave:
+        coord = coords.get(name, 0)
+        i = fvarTags.index(axesMap[name])
+        axisIndexMasters.append(i)
+        axisValueMasters.append(fl2fi(coord, 14))
+    if axisIndexMasters:
+        # Sort them for better sharing
+        axisIndexMasters, axisValueMasters = zip(
+            *sorted(zip(axisIndexMasters, axisValueMasters))
+        )
 
     c = ca.transformHave
     if c.have_translateX:
