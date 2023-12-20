@@ -177,16 +177,6 @@ def buildTransform(componentAnalysis):
         transformMasters.append(otRound(t.tCenterY))
 
 
-def buildComponentRecord(component, componentAnalysis):
-    ca = componentAnalysis
-
-    rec = VarComponent()
-    rec.flags = ca.getComponentFlags()
-    rec.glyphName = component.name
-
-    return rec
-
-
 def getComponentMasters(
     rcjkfont, component, componentGlyph, componentAnalysis, fvarTags, publicAxes
 ):
