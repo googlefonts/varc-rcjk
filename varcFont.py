@@ -220,12 +220,13 @@ async def buildVarcFont(rcjkfont, glyphs):
     print("AxisIndicesList:", len(axisIndicesList))
 
     axisValues = ot.AxisValuesList()
-    axisValues.VarIndices = []
+    axisValues.VarIndices = ot.DeltaSetIndexMap()
+    varIdxes = axisValues.VarIndices.mapping = []
     axisValues.Item = [l[1][0] for l in axisValuesList]
     # Store the rest in the varStore
     for model, lst in axisValuesList:
         varStoreBuilder.setModel(model)
-        axisValues.VarIndices.append(
+        varIdxes.append(
             varStoreBuilder.storeMasters(
                 [Vector(l) for l in lst], round=Vector.__round__
             )[1]
@@ -234,20 +235,19 @@ async def buildVarcFont(rcjkfont, glyphs):
     # Reorder the axisValuesList to put all the NO_VARIATION_INDEX values at the end
     # so we don't have to encode them.
     mapping = sorted(
-        range(len(axisValues.VarIndices)), key=lambda i: axisValues.VarIndices[i]
+        range(len(varIdxes)), key=lambda i: varIdxes[i]
     )
-    axisValues.VarIndices = [axisValues.VarIndices[i] for i in mapping]
+    axisValues.VarIndices.mapping = varIdxes = [varIdxes[i] for i in mapping]
     axisValues.Item = [axisValues.Item[i] for i in mapping]
     reverseMapping = {mapping[i]: i for i in range(len(mapping))}
     for rec in varcGlyphs.values():
         for comp in rec.components:
             if comp.AxisValuesIndex is not None:
                 comp.AxisValuesIndex = reverseMapping[comp.AxisValuesIndex]
-    while axisValues.VarIndices and axisValues.VarIndices[-1] == ot.NO_VARIATION_INDEX:
-        axisValues.VarIndices.pop()
+    while varIdxes and varIdxes[-1] == ot.NO_VARIATION_INDEX:
+        varIdxes.pop()
 
-    axisValues.VarIndicesCount = len(axisValues.VarIndices)
-    print("AxisValuesList:", len(axisValues.Item), len(axisValues.VarIndices))
+    print("AxisValuesList:", len(axisValues.Item), len(axisValues.VarIndices.mapping))
 
     transforms = ot.TransformList()
     transforms.VarTransform = []
