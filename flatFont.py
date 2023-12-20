@@ -116,5 +116,5 @@ async def buildFlatFont(rcjkfont, glyphs):
     fb.setupGlyf(fbGlyphs, validateGlyphFormat=False)
     fb.setupGvar(fbVariations)
     fixLsb(fb)
-    print("Saving varc.ttf")
+    print("Saving flat.ttf")
     fb.save("flat.ttf")
