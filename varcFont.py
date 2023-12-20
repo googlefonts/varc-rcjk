@@ -119,7 +119,6 @@ async def buildVarcFont(rcjkfont, glyphs):
         componentAnalysis = analyzeComponents(glyph_masters, glyphs, axes, publicAxes)
 
         glyphRecord = varcGlyphs[glyph.name] = ot.VarCompositeGlyph()
-        glyphRecord.populateDefaults()
         componentRecords = glyphRecord.components
 
         layer = next(iter(glyph_masters.values()))  # Default master
