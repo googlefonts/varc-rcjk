@@ -153,30 +153,6 @@ def analyzeComponents(glyph_masters, glyphs, glyphAxes, publicAxes):
     return cas
 
 
-def buildTransform(componentAnalysis):
-    ca = componentAnalysis
-    transform = DecomposedTransform()
-    c = ca.transformHave
-    if c.have_translateX:
-        t.translateX
-    if c.have_translateY:
-        transformMasters.append(otRound(t.translateY))
-    if c.have_rotation:
-        transformMasters.append(fl2fi(t.rotation / 180.0, 12))
-    if c.have_scaleX:
-        transformMasters.append(fl2fi(t.scaleX, 10))
-    if c.have_scaleY:
-        transformMasters.append(fl2fi(t.scaleY, 10))
-    if c.have_skewX:
-        transformMasters.append(fl2fi(t.skewX / 180.0, 12))
-    if c.have_skewY:
-        transformMasters.append(fl2fi(t.skewY / 180.0, 12))
-    if c.have_tcenterX:
-        transformMasters.append(otRound(t.tCenterX))
-    if c.have_tcenterY:
-        transformMasters.append(otRound(t.tCenterY))
-
-
 def getComponentMasters(
     rcjkfont, component, componentGlyph, componentAnalysis, fvarTags, publicAxes
 ):
