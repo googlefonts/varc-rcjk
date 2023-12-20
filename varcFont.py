@@ -137,7 +137,7 @@ async def buildVarcFont(rcjkfont, glyphs):
         masterLocs = [normalizeLocation(m, axes) for m in masterLocs]
         masterLocs = [{axesMap[k]: v for k, v in loc.items()} for loc in masterLocs]
 
-        model = VariationModel(masterLocs, list(axes.keys()))
+        model = VariationModel(masterLocs, sorted(axes.keys()))
 
         for ci, (rec, ca) in enumerate(zip(componentRecords, componentAnalysis)):
             allAxisIndexMasterValues = []
@@ -206,17 +206,20 @@ async def buildVarcFont(rcjkfont, glyphs):
     for model,lst in axisValuesList:
         varStoreBuilder.setModel(model)
         axisValues.VarIndices.append(varStoreBuilder.storeMasters([Vector(l) for l in lst], round=Vector.__round__)[1])
+
     # Reorder the axisValuesList to put all the NO_VARIATION_INDEX values at the end
     # so we don't have to encode them.
     mapping = sorted(range(len(axisValues.VarIndices)), key=lambda i: axisValues.VarIndices[i])
     axisValues.VarIndices = [axisValues.VarIndices[i] for i in mapping]
     axisValues.Item = [axisValues.Item[i] for i in mapping]
+    reverseMapping = {mapping[i]: i for i in range(len(mapping))}
     for rec in varcGlyphs.values():
         for comp in rec.components:
             if comp.AxisValuesIndex is not None:
-                comp.AxisValuesIndex = mapping[comp.AxisValuesIndex]
+                comp.AxisValuesIndex = reverseMapping[comp.AxisValuesIndex]
     while axisValues.VarIndices and axisValues.VarIndices[-1] == ot.NO_VARIATION_INDEX:
         axisValues.VarIndices.pop()
+
     axisValues.VarIndicesCount = len(axisValues.VarIndices)
     print("AxisValuesList:", len(axisValues.Item), len(axisValues.VarIndices))
 
