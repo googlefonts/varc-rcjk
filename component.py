@@ -181,23 +181,29 @@ def buildComponentRecord(component, componentAnalysis):
     return rec
 
 
-def getComponentMasters(rcjkfont, component, componentGlyph, componentAnalysis):
+def getComponentMasters(rcjkfont, component, componentGlyph, componentAnalysis, fvarTags):
     ca = componentAnalysis
 
     componentAxes = {
         axis.name: (axis.minValue, axis.defaultValue, axis.maxValue)
         for axis in componentGlyph.axes
     }
+    axesMap = {}
+    for i, name in enumerate(componentAxes.keys()):
+        axesMap[name] = "%04d" % i if name not in fvarTags else name
+
     coords = component.location
     coords = normalizeLocation(coords, componentAxes)
+
 
     t = component.transformation
 
     axisIndexMasters, axisValueMasters, transformMasters = [], [], []
 
-    for i, tag in enumerate(componentAxes):
-        if tag in ca.coordinateHave:
-            coord = coords.get(tag, 0)
+    for name in ca.coordinates:
+        if name in ca.coordinateHave:
+            coord = coords.get(name, 0)
+            i = fvarTags.index(axesMap[name])
             axisIndexMasters.append(i)
             axisValueMasters.append(fl2fi(coord, 14))
 

@@ -140,7 +140,7 @@ async def buildVarcFont(rcjkfont, glyphs):
                 component = layer.glyph.components[ci]
 
                 axisIndexMasters, axisValueMasters, transformMasters = getComponentMasters(
-                    rcjkfont, component, glyphs[component.name], componentAnalysis[ci]
+                    rcjkfont, component, glyphs[component.name], componentAnalysis[ci], fvarTags
                 )
                 allAxisIndexMasterValues.append(axisIndexMasters)
                 allAxisValueMasterValues.append(axisValueMasters)
