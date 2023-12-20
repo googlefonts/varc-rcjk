@@ -96,7 +96,7 @@ async def buildVarcFont(rcjkfont, glyphs):
         }
         axesMap = {}
         i = 0
-        for name in axes.keys():
+        for name in sorted(axes.keys()):
             if name in fvarTags:
                 axesMap[name] = name
             else:
