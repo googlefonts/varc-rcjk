@@ -181,7 +181,7 @@ def buildComponentRecord(component, componentAnalysis):
     return rec
 
 
-def getComponentMasters(rcjkfont, component, componentGlyph, componentAnalysis, fvarTags):
+def getComponentMasters(rcjkfont, component, componentGlyph, componentAnalysis, fvarTags, publicAxes):
     ca = componentAnalysis
 
     componentAxes = {
@@ -191,7 +191,7 @@ def getComponentMasters(rcjkfont, component, componentGlyph, componentAnalysis, 
     axesMap = {}
     i = 0
     for name in sorted(componentAxes.keys()):
-        if name in fvarTags:
+        if name in publicAxes:
             axesMap[name] = name
         else:
             axesMap[name] = "%04d" % i

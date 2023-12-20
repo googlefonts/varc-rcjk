@@ -43,13 +43,14 @@ def setupFvarAxes(rcjkfont, glyphs):
             )
         )
     fvarTags = {axis[0] for axis in fvarAxes}
+    fvarNames = {axis[4] for axis in fvarAxes}
 
     maxAxes = 0
     for glyph in glyphs.values():
         axes = {
             axis.name: (axis.minValue, axis.defaultValue, axis.maxValue)
             for axis in glyph.axes
-            if axis.name not in fvarTags
+            if axis.name not in fvarNames
         }
         maxAxes = max(maxAxes, len(axes))
 
@@ -97,7 +98,7 @@ async def buildVarcFont(rcjkfont, glyphs):
         axesMap = {}
         i = 0
         for name in sorted(axes.keys()):
-            if name in fvarTags:
+            if name in publicAxes:
                 axesMap[name] = name
             else:
                 axesMap[name] = "%04d" % i
@@ -137,7 +138,7 @@ async def buildVarcFont(rcjkfont, glyphs):
         masterLocs = [normalizeLocation(m, axes) for m in masterLocs]
         masterLocs = [{axesMap[k]: v for k, v in loc.items()} for loc in masterLocs]
 
-        model = VariationModel(masterLocs, axes.keys())
+        model = VariationModel(masterLocs, list(axes.keys()))
 
         for ci, (rec, ca) in enumerate(zip(componentRecords, componentAnalysis)):
             allAxisIndexMasterValues = []
@@ -147,7 +148,7 @@ async def buildVarcFont(rcjkfont, glyphs):
                 component = layer.glyph.components[ci]
 
                 axisIndexMasters, axisValueMasters, transformMasters = getComponentMasters(
-                    rcjkfont, component, glyphs[component.name], componentAnalysis[ci], fvarTags
+                    rcjkfont, component, glyphs[component.name], componentAnalysis[ci], fvarTags, publicAxes
                 )
                 allAxisIndexMasterValues.append(axisIndexMasters)
                 allAxisValueMasterValues.append(axisValueMasters)
