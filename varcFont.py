@@ -159,7 +159,7 @@ async def buildVarcFont(rcjkfont, glyphs):
                     rcjkfont,
                     component,
                     glyphs[component.name],
-                    componentAnalysis[ci],
+                    ca,
                     fvarTags,
                     publicAxes,
                 )
