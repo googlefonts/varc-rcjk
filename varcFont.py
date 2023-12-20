@@ -234,6 +234,8 @@ async def buildVarcFont(rcjkfont, glyphs):
         t.varIndex = varStoreBuilder.storeMasters([Vector(l) for l in lst], round=Vector.__round__)[1]
         if t.varIndex == ot.NO_VARIATION_INDEX:
             t.flags &= ~VarTransformFlags.HAVE_VARIATIONS
+        else:
+            t.flags |= VarTransformFlags.HAVE_VARIATIONS
         transforms.VarTransform.append(t)
     print("TransformList:", len(transforms.VarTransform))
 
