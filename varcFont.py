@@ -137,7 +137,7 @@ async def buildVarcFont(rcjkfont, glyphs):
         masterLocs = [normalizeLocation(m, axes) for m in masterLocs]
         masterLocs = [{axesMap[k]: v for k, v in loc.items()} for loc in masterLocs]
 
-        model = VariationModel(masterLocs, sorted(axes.keys()))
+        model = VariationModel(masterLocs, axes.keys())
 
         for ci, (rec, ca) in enumerate(zip(componentRecords, componentAnalysis)):
             allAxisIndexMasterValues = []
