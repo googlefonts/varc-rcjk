@@ -123,7 +123,7 @@ async def buildVarcFont(rcjkfont, glyphs):
         componentRecords = glyphRecord.components
 
         layer = next(iter(glyph_masters.values()))  # Default master
-        assert len(layer.glyph.components) == len(componentAnalysis)
+        assert len(layer.glyph.components) == len(componentAnalysis), (len(layer.glyph.components), len(componentAnalysis))
         for component, ca in zip(layer.glyph.components, componentAnalysis):
             rec = VarComponent()
             rec.flags = ca.getComponentFlags()
