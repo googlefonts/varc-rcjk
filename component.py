@@ -4,7 +4,6 @@ from fontTools.varLib.models import normalizeLocation
 from fontTools.ttLib.tables.otTables import (
     VarComponent,
     VarComponentFlags,
-    VarTransformFlags,
     VAR_TRANSFORM_MAPPING,
 )
 from fontTools.misc.transform import DecomposedTransform
@@ -34,34 +33,30 @@ class ComponentAnalysis:
         self.coordinatesReset = None
         self.transformHave = TransformHave()
 
-    def getTransformFlags(self):
-        flags = 0
-        if self.transformHave.have_translateX:
-            flags |= VarTransformFlags.HAVE_TRANSLATE_X
-        if self.transformHave.have_translateY:
-            flags |= VarTransformFlags.HAVE_TRANSLATE_Y
-        if self.transformHave.have_rotation:
-            flags |= VarTransformFlags.HAVE_ROTATION
-        if self.transformHave.have_scaleX:
-            flags |= VarTransformFlags.HAVE_SCALE_X
-        if self.transformHave.have_scaleY:
-            flags |= VarTransformFlags.HAVE_SCALE_Y
-        if self.transformHave.have_skewX:
-            flags |= VarTransformFlags.HAVE_SKEW_X
-        if self.transformHave.have_skewY:
-            flags |= VarTransformFlags.HAVE_SKEW_Y
-        if self.transformHave.have_tcenterX:
-            flags |= VarTransformFlags.HAVE_TCENTER_X
-        if self.transformHave.have_tcenterY:
-            flags |= VarTransformFlags.HAVE_TCENTER_Y
-
-        return flags
-
     def getComponentFlags(self):
         flags = 0
 
         if self.coordinatesReset:
             flags |= VarComponentFlags.RESET_UNSPECIFIED_AXES
+
+        if self.transformHave.have_translateX:
+            flags |= VarComponentFlags.HAVE_TRANSLATE_X
+        if self.transformHave.have_translateY:
+            flags |= VarComponentFlags.HAVE_TRANSLATE_Y
+        if self.transformHave.have_rotation:
+            flags |= VarComponentFlags.HAVE_ROTATION
+        if self.transformHave.have_scaleX:
+            flags |= VarComponentFlags.HAVE_SCALE_X
+        if self.transformHave.have_scaleY:
+            flags |= VarComponentFlags.HAVE_SCALE_Y
+        if self.transformHave.have_skewX:
+            flags |= VarComponentFlags.HAVE_SKEW_X
+        if self.transformHave.have_skewY:
+            flags |= VarComponentFlags.HAVE_SKEW_Y
+        if self.transformHave.have_tcenterX:
+            flags |= VarComponentFlags.HAVE_TCENTER_X
+        if self.transformHave.have_tcenterY:
+            flags |= VarComponentFlags.HAVE_TCENTER_Y
 
         return flags
 

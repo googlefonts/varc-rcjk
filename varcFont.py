@@ -139,6 +139,7 @@ async def buildVarcFont(rcjkfont, glyphs):
         masterLocs = [{axesMap[k]: v for k, v in loc.items()} for loc in masterLocs]
 
         model = VariationModel(masterLocs, list(axes.keys()))
+        varStoreBuilder.setModel(model)
 
         assert len(componentRecords) == len(componentAnalysis), (
             len(componentRecords),
@@ -173,6 +174,7 @@ async def buildVarcFont(rcjkfont, glyphs):
 
             axisIndexMasterValues = allAxisIndexMasterValues[0]
             assert all(axisIndexMasterValues == m for m in allAxisIndexMasterValues)
+            rec.numAxes = len(axisIndexMasterValues)
             if axisIndexMasterValues:
                 if axisIndexMasterValues in axisIndicesMap:
                     idx = axisIndicesMap[axisIndexMasterValues]
@@ -180,92 +182,25 @@ async def buildVarcFont(rcjkfont, glyphs):
                     idx = len(axisIndicesList)
                     axisIndicesList.append(axisIndexMasterValues)
                     axisIndicesMap[axisIndexMasterValues] = idx
-                rec.AxisIndicesIndex = idx
+                rec.axisIndicesIndex = idx
             else:
-                rec.AxisIndicesIndex = None
+                rec.axisIndicesIndex = None
 
-            if rec.AxisIndicesIndex is not None:
-                if allAxisValueMasterValues in axisValuesMap:
-                    idx = axisValuesMap[allAxisValueMasterValues]
-                else:
-                    idx = len(axisValuesList)
-                    axisValuesList.append((model, allAxisValueMasterValues))
-                    axisValuesMap[allAxisValueMasterValues] = idx
-                rec.AxisValuesIndex = idx
-            else:
-                rec.AxisValuesIndex = None
+            axisValues, rec.axisValuesVarIndex = varStoreBuilder.storeMasters(
+                [Vector(l) for l in allAxisValueMasterValues], round=Vector.__round__
+            )
+            rec.axisValues = tuple(axisValues)
 
-            transformMasterValues = allTransformMasterValues[0]
-            if transformMasterValues or not all(
-                transformMasterValues == m for m in allTransformMasterValues
-            ):
-                if allTransformMasterValues in transformMap:
-                    idx = transformMap[allTransformMasterValues]
-                else:
-                    idx = len(transformList)
-                    transformList.append(
-                        (
-                            model,
-                            allTransformMasterValues,
-                            ca.getTransformFlags(),
-                        )
-                    )
-                    transformMap[allTransformMasterValues] = idx
-                rec.TransformIndex = idx
-            else:
-                rec.TransformIndex = None
+            transformBase, rec.transformVarIndex = varStoreBuilder.storeMasters(
+                [Vector(l) for l in allTransformMasterValues], round=Vector.__round__
+            )
+            rec.axisValues = tuple(axisValues)
+            rec.transform.scaleX = rec.transform.scaleY = 0
+            rec.applyTransformDeltas(transformBase)
 
     axisIndices = ot.AxisIndicesList()
     axisIndices.Item = axisIndicesList
     print("AxisIndicesList:", len(axisIndicesList))
-
-    axisValues = ot.AxisValuesList()
-    axisValues.VarIndices = ot.DeltaSetIndexMap()
-    varIdxes = axisValues.VarIndices.mapping = []
-    axisValues.Item = [l[1][0] for l in axisValuesList]
-    # Store the rest in the varStore
-    for model, lst in axisValuesList:
-        varStoreBuilder.setModel(model)
-        varIdxes.append(
-            varStoreBuilder.storeMasters(
-                [Vector(l) for l in lst], round=Vector.__round__
-            )[1]
-        )
-
-    # Reorder the axisValuesList to put all the NO_VARIATION_INDEX values at the end
-    # so we don't have to encode them.
-    mapping = sorted(
-        range(len(varIdxes)), key=lambda i: varIdxes[i]
-    )
-    axisValues.VarIndices.mapping = varIdxes = [varIdxes[i] for i in mapping]
-    axisValues.Item = [axisValues.Item[i] for i in mapping]
-    reverseMapping = {mapping[i]: i for i in range(len(mapping))}
-    for rec in varcGlyphs.values():
-        for comp in rec.components:
-            if comp.AxisValuesIndex is not None:
-                comp.AxisValuesIndex = reverseMapping[comp.AxisValuesIndex]
-    while varIdxes and varIdxes[-1] == ot.NO_VARIATION_INDEX:
-        varIdxes.pop()
-
-    print("AxisValuesList:", len(axisValues.Item), len(axisValues.VarIndices.mapping))
-
-    transforms = ot.TransformList()
-    transforms.VarTransform = []
-    for model, lst, flags in transformList:
-        varStoreBuilder.setModel(model)
-        t = ot.VarTransform()
-        t.flags = flags
-        t.transform.scaleX = t.transform.scaleY = 0
-        t.applyDeltas(lst[0])
-        t.varIndex = varStoreBuilder.storeMasters(
-            [Vector(l) for l in lst], round=Vector.__round__
-        )[1]
-        if t.varIndex == ot.NO_VARIATION_INDEX:
-            t.flags &= ~VarTransformFlags.HAVE_VARIATIONS
-        else:
-            t.flags |= VarTransformFlags.HAVE_VARIATIONS
-        transforms.VarTransform.append(t)
-    print("TransformList:", len(transforms.VarTransform))
 
     varStore = varStoreBuilder.finish()
 
@@ -281,8 +216,6 @@ async def buildVarcFont(rcjkfont, glyphs):
 
     varcTable.MultiVarStore = varStore
     varcTable.AxisIndicesList = axisIndices
-    varcTable.AxisValuesList = axisValues
-    varcTable.TransformList = transforms
     varcTable.VarCompositeGlyphs = varCompositeGlyphs
 
     fb.setupFvar(fvarAxes, [])
