@@ -140,6 +140,10 @@ async def buildVarcFont(rcjkfont, glyphs):
 
         model = VariationModel(masterLocs, list(axes.keys()))
 
+        assert len(componentRecords) == len(componentAnalysis), (
+            len(componentRecords),
+            len(componentAnalysis),
+        )
         for ci, (rec, ca) in enumerate(zip(componentRecords, componentAnalysis)):
             allAxisIndexMasterValues = []
             allAxisValueMasterValues = []
