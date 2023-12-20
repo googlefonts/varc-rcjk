@@ -1,7 +1,11 @@
 from fontTools.misc.roundTools import otRound
 from fontTools.misc.fixedTools import floatToFixed as fl2fi
 from fontTools.varLib.models import normalizeLocation
-from fontTools.ttLib.tables.otTables import VarComponent, VarComponentFlags, VarTransformFlags
+from fontTools.ttLib.tables.otTables import (
+    VarComponent,
+    VarComponentFlags,
+    VarTransformFlags,
+)
 from fontTools.misc.transform import DecomposedTransform
 from rcjkTools import *
 import struct
@@ -148,6 +152,7 @@ def analyzeComponents(glyph_masters, glyphs, glyphAxes, publicAxes):
 
     return cas
 
+
 def buildTransform(componentAnalysis):
     ca = componentAnalysis
     transform = DecomposedTransform()
@@ -171,6 +176,7 @@ def buildTransform(componentAnalysis):
     if c.have_tcenterY:
         transformMasters.append(otRound(t.tCenterY))
 
+
 def buildComponentRecord(component, componentAnalysis):
     ca = componentAnalysis
 
@@ -181,7 +187,9 @@ def buildComponentRecord(component, componentAnalysis):
     return rec
 
 
-def getComponentMasters(rcjkfont, component, componentGlyph, componentAnalysis, fvarTags, publicAxes):
+def getComponentMasters(
+    rcjkfont, component, componentGlyph, componentAnalysis, fvarTags, publicAxes
+):
     ca = componentAnalysis
 
     componentAxes = {

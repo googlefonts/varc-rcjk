@@ -123,7 +123,8 @@ async def buildVarcFont(rcjkfont, glyphs):
         componentRecords = glyphRecord.components
 
         layer = next(iter(glyph_masters.values()))  # Default master
-        for ci, (component, ca) in enumerate(zip(layer.glyph.components, componentAnalysis)):
+        assert len(layer.glyph.components) == len(componentAnalysis)
+        for component, ca in zip(layer.glyph.components, componentAnalysis):
             rec = buildComponentRecord(
                 component,
                 ca,
@@ -147,8 +148,17 @@ async def buildVarcFont(rcjkfont, glyphs):
             for loc, layer in glyph_masters.items():
                 component = layer.glyph.components[ci]
 
-                axisIndexMasters, axisValueMasters, transformMasters = getComponentMasters(
-                    rcjkfont, component, glyphs[component.name], componentAnalysis[ci], fvarTags, publicAxes
+                (
+                    axisIndexMasters,
+                    axisValueMasters,
+                    transformMasters,
+                ) = getComponentMasters(
+                    rcjkfont,
+                    component,
+                    glyphs[component.name],
+                    componentAnalysis[ci],
+                    fvarTags,
+                    publicAxes,
                 )
                 allAxisIndexMasterValues.append(axisIndexMasters)
                 allAxisValueMasterValues.append(axisValueMasters)
@@ -183,18 +193,25 @@ async def buildVarcFont(rcjkfont, glyphs):
                 rec.AxisValuesIndex = None
 
             transformMasterValues = allTransformMasterValues[0]
-            if ca.transformHave.transform or not all(transformMasterValues == m for m in allTransformMasterValues):
-
+            if ca.transformHave.transform or not all(
+                transformMasterValues == m for m in allTransformMasterValues
+            ):
                 if allTransformMasterValues in transformMap:
                     idx = transformMap[allTransformMasterValues]
                 else:
                     idx = len(transformList)
-                    transformList.append((model, allTransformMasterValues, ca.getTransformFlags(), ca.transformHave.transform))
+                    transformList.append(
+                        (
+                            model,
+                            allTransformMasterValues,
+                            ca.getTransformFlags(),
+                            ca.transformHave.transform,
+                        )
+                    )
                     transformMap[allTransformMasterValues] = idx
                 rec.TransformIndex = idx
             else:
                 rec.TransformIndex = None
-
 
     axisIndices = ot.AxisIndicesList()
     axisIndices.Item = axisIndicesList
@@ -204,13 +221,19 @@ async def buildVarcFont(rcjkfont, glyphs):
     axisValues.VarIndices = []
     axisValues.Item = [l[1][0] for l in axisValuesList]
     # Store the rest in the varStore
-    for model,lst in axisValuesList:
+    for model, lst in axisValuesList:
         varStoreBuilder.setModel(model)
-        axisValues.VarIndices.append(varStoreBuilder.storeMasters([Vector(l) for l in lst], round=Vector.__round__)[1])
+        axisValues.VarIndices.append(
+            varStoreBuilder.storeMasters(
+                [Vector(l) for l in lst], round=Vector.__round__
+            )[1]
+        )
 
     # Reorder the axisValuesList to put all the NO_VARIATION_INDEX values at the end
     # so we don't have to encode them.
-    mapping = sorted(range(len(axisValues.VarIndices)), key=lambda i: axisValues.VarIndices[i])
+    mapping = sorted(
+        range(len(axisValues.VarIndices)), key=lambda i: axisValues.VarIndices[i]
+    )
     axisValues.VarIndices = [axisValues.VarIndices[i] for i in mapping]
     axisValues.Item = [axisValues.Item[i] for i in mapping]
     reverseMapping = {mapping[i]: i for i in range(len(mapping))}
@@ -231,7 +254,9 @@ async def buildVarcFont(rcjkfont, glyphs):
         t = ot.VarTransform()
         t.flags = flags
         t.transform = transform
-        t.varIndex = varStoreBuilder.storeMasters([Vector(l) for l in lst], round=Vector.__round__)[1]
+        t.varIndex = varStoreBuilder.storeMasters(
+            [Vector(l) for l in lst], round=Vector.__round__
+        )[1]
         if t.varIndex == ot.NO_VARIATION_INDEX:
             t.flags &= ~VarTransformFlags.HAVE_VARIATIONS
         else:
