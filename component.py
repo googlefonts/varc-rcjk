@@ -5,6 +5,7 @@ from fontTools.ttLib.tables.otTables import (
     VarComponent,
     VarComponentFlags,
     VarTransformFlags,
+    VAR_TRANSFORM_MAPPING,
 )
 from fontTools.misc.transform import DecomposedTransform
 from rcjkTools import *
@@ -12,7 +13,6 @@ import struct
 
 
 class TransformHave:
-    transform = DecomposedTransform()
     have_translateX = False
     have_translateY = False
     have_rotation = False
@@ -97,7 +97,6 @@ def analyzeComponents(glyph_masters, glyphs, glyphAxes, publicAxes):
         for i, component in enumerate(layer.glyph.components):
             ca = cas[i]
             t = component.transformation
-            ca.transformHave.transform = t
             if otRound(t.translateX):
                 ca.transformHave.have_translateX = True
             if otRound(t.translateY):

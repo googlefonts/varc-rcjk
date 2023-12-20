@@ -196,7 +196,7 @@ async def buildVarcFont(rcjkfont, glyphs):
                 rec.AxisValuesIndex = None
 
             transformMasterValues = allTransformMasterValues[0]
-            if ca.transformHave.transform or not all(
+            if transformMasterValues or not all(
                 transformMasterValues == m for m in allTransformMasterValues
             ):
                 if allTransformMasterValues in transformMap:
@@ -208,7 +208,6 @@ async def buildVarcFont(rcjkfont, glyphs):
                             model,
                             allTransformMasterValues,
                             ca.getTransformFlags(),
-                            ca.transformHave.transform,
                         )
                     )
                     transformMap[allTransformMasterValues] = idx
@@ -252,11 +251,12 @@ async def buildVarcFont(rcjkfont, glyphs):
 
     transforms = ot.TransformList()
     transforms.VarTransform = []
-    for model, lst, flags, transform in transformList:
+    for model, lst, flags in transformList:
         varStoreBuilder.setModel(model)
         t = ot.VarTransform()
         t.flags = flags
-        t.transform = transform
+        t.transform.scaleX = t.transform.scaleY = 0
+        t.applyDeltas(lst[0])
         t.varIndex = varStoreBuilder.storeMasters(
             [Vector(l) for l in lst], round=Vector.__round__
         )[1]
