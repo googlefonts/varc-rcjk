@@ -122,7 +122,10 @@ async def buildVarcFont(rcjkfont, glyphs):
         componentRecords = glyphRecord.components
 
         layer = next(iter(glyph_masters.values()))  # Default master
-        assert len(layer.glyph.components) == len(componentAnalysis), (len(layer.glyph.components), len(componentAnalysis))
+        assert len(layer.glyph.components) == len(componentAnalysis), (
+            len(layer.glyph.components),
+            len(componentAnalysis),
+        )
         for component, ca in zip(layer.glyph.components, componentAnalysis):
             rec = VarComponent()
             rec.flags = ca.getComponentFlags()
@@ -196,6 +199,23 @@ async def buildVarcFont(rcjkfont, glyphs):
             rec.axisValues = tuple(axisValues)
             rec.transform.scaleX = rec.transform.scaleY = 0
             rec.applyTransformDeltas(transformBase)
+
+    # Reorder axisIndices such that the more used ones come first
+    # Count users first.
+    axisIndicesUsers = [0] * len(axisIndicesList)
+    for glyph in varcGlyphs.values():
+        for component in glyph.components:
+            if component.axisIndicesIndex is not None:
+                axisIndicesUsers[component.axisIndicesIndex] += 1
+    # Then sort by usage
+    mapping = sorted(range(len(axisIndicesList)), key=lambda i: -axisIndicesUsers[i])
+    axisIndicesList = [axisIndicesList[i] for i in mapping]
+    reverseMapping = {mapping[i]: i for i in range(len(mapping))}
+    # Then remap axisIndicesIndex
+    for glyph in varcGlyphs.values():
+        for component in glyph.components:
+            if component.axisIndicesIndex is not None:
+                component.axisIndicesIndex = reverseMapping[component.axisIndicesIndex]
 
     axisIndices = ot.AxisIndicesList()
     axisIndices.Item = axisIndicesList
