@@ -14,6 +14,9 @@ from functools import partial
 
 
 def replayCommandsThroughCu2QuMultiPen(commands, cu2quPen):
+    commands = list(commands)
+    firstCommand = commands[0]
+    assert all(len(command) == len(firstCommand) for command in commands)
     for ops in zip(*commands):
         opNames = [op[0] for op in ops]
         opArgs = [op[1] for op in ops]
@@ -46,11 +49,13 @@ async def buildFlatGlyph(rcjkfont, glyph, axesNameToTag=None):
         rppen.value = (await decomposeLayer(layer, rcjkfont)).value
         rppen.replay(pspen)
 
+        assert loc not in shapes, loc
         shapes[loc] = rspen.value
 
     pens = [TTGlyphPen() for i in range(len(glyph_masters))]
     cu2quPen = Cu2QuMultiPen(pens, 1)
     # Pass all shapes through Cu2QuMultiPen
+    assert len(shapes) == len(pens)
     replayCommandsThroughCu2QuMultiPen(shapes.values(), cu2quPen)
     pens = [pen.glyph() for pen in pens]
 
