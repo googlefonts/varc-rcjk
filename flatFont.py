@@ -46,6 +46,7 @@ async def buildFlatGlyph(rcjkfont, glyph, axesNameToTag=None):
         rppen.value = (await decomposeLayer(layer, rcjkfont)).value
         rppen.replay(pspen)
 
+        assert loc not in shapes
         shapes[loc] = rspen.value
 
     pens = [TTGlyphPen() for i in range(len(glyph_masters))]
