@@ -32,6 +32,7 @@ async def main(args):
 
     glyphs = {}
     for glyphname in list(revCmap.keys())[:count] if not glyphset else glyphset:
+        print("Loading glyph", glyphname)
         glyph = await rcjkfont.getGlyph(glyphname)
         glyph_masters = glyphMasters(glyph)
         glyphs[glyphname] = glyph
