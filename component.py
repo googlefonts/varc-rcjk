@@ -115,14 +115,14 @@ def analyzeComponents(glyph_masters, glyphs, glyphAxes, publicAxes):
 
             loc = component.location
             loc = normalizeLocation(loc, allComponentAxes[i])
-            for tag in ca.coordinates:
-                c = loc.get(tag, 0)
+            for name in ca.coordinates:
+                c = loc.get(name, 0)
                 if c:
-                    ca.coordinateHaveReset.add(tag)
-                if c != masterLocation.get(tag, 0) or (
-                    tag in publicAxes and tag not in glyphAxes
+                    ca.coordinateHaveReset.add(name)
+                if c != masterLocation.get(name, 0) or (
+                    name in publicAxes and name not in glyphAxes
                 ):
-                    ca.coordinateHaveOverlay.add(tag)
+                    ca.coordinateHaveOverlay.add(name)
 
     for ca in cas:
         ca.coordinatesReset = len(ca.coordinateHaveReset) <= len(
@@ -137,11 +137,11 @@ def analyzeComponents(glyph_masters, glyphs, glyphAxes, publicAxes):
             ca = cas[i]
             loc = component.location
             loc = normalizeLocation(loc, allComponentAxes[i])
-            for tag in ca.coordinates:
+            for name in ca.coordinates:
                 # XXX Is this logic correct for coordinatesReset?
-                if tag in ca.coordinateHave and loc.get(tag, 0) != defaultLocations[
+                if name in ca.coordinateHave and loc.get(name, 0) != defaultLocations[
                     i
-                ].get(tag, 0):
+                ].get(name, 0):
                     ca.coordinateVaries = True
 
     return cas
