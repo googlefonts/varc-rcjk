@@ -11,14 +11,18 @@ from fontTools.misc.vector import Vector
 async def decomposeGlyph(glyph, rcjkfont, location=(), trans=Identity):
     value = []
     axes = {
+            axis["name"]: (axis["minValue"], axis["defaultValue"], axis["maxValue"])
+            for axis in rcjkfont.designspace["axes"]
+    }
+    axes.update({
         axis.name: (axis.minValue, axis.defaultValue, axis.maxValue)
         for axis in glyph.axes
-    }
+    })
 
     glyph_masters = glyphMasters(glyph)
 
     masterLocs = list(dictifyLocation(l) for l in glyph_masters.keys())
-    masterLocs = [normalizeLocation(m, axes) for m in masterLocs]
+    masterLocs = [normalizeLocation(m, axes, validate=True) for m in masterLocs]
 
     model = VariationModel(masterLocs, list(axes.keys()))
 
@@ -29,7 +33,7 @@ async def decomposeGlyph(glyph, rcjkfont, location=(), trans=Identity):
         for layer in glyph_masters.values()
     ]
 
-    loc = normalizeLocation(location, axes)
+    loc = normalizeLocation(location, axes) # , validate=True)
     shape = model.interpolateFromMasters(loc, masterShapes)
 
     value.extend(shape.value)

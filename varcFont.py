@@ -50,7 +50,7 @@ def setupFvarAxes(rcjkfont, glyphs):
         axes = {
             axis.name: (axis.minValue, axis.defaultValue, axis.maxValue)
             for axis in glyph.axes
-            if axis.name not in fvarNames
+            if axis.name not in fvarNames and axis.name not in fvarTags
         }
         maxAxes = max(maxAxes, len(axes))
 
@@ -66,9 +66,9 @@ async def buildVarcFont(rcjkfont, glyphs):
 
     await closureGlyphs(rcjkfont, glyphs)
 
-    publicAxes = set()
+    publicAxes = dict()
     for axis in rcjkfont.designspace["axes"]:
-        publicAxes.add(axis["tag"])
+        publicAxes[axis["name"]] = axis["tag"]
     fvarAxes = setupFvarAxes(rcjkfont, glyphs)
     fvarTags = [axis[0] for axis in fvarAxes]
 
@@ -92,13 +92,19 @@ async def buildVarcFont(rcjkfont, glyphs):
         glyph_masters = glyphMasters(glyph)
 
         axes = {
+                axis["name"]: (axis["minValue"], axis["defaultValue"], axis["maxValue"])
+                for axis in rcjkfont.designspace["axes"]
+        }
+        axes.update({
             axis.name: (axis.minValue, axis.defaultValue, axis.maxValue)
             for axis in glyph.axes
-        }
+        })
         axesMap = {}
         i = 0
         for name in sorted(axes.keys()):
             if name in publicAxes:
+                axesMap[name] = publicAxes[name]
+            elif name in fvarTags:
                 axesMap[name] = name
             else:
                 axesMap[name] = "%04d" % i
@@ -137,7 +143,7 @@ async def buildVarcFont(rcjkfont, glyphs):
         #
 
         masterLocs = list(dictifyLocation(l) for l in glyph_masters.keys())
-        masterLocs = [normalizeLocation(m, axes) for m in masterLocs]
+        masterLocs = [normalizeLocation(m, axes, validate=True) for m in masterLocs]
         masterLocs = [{axesMap[k]: v for k, v in loc.items()} for loc in masterLocs]
 
         model = VariationModel(masterLocs, list(axes.keys()))

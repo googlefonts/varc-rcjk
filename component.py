@@ -161,6 +161,8 @@ def getComponentMasters(
     for name in sorted(componentAxes.keys()):
         if name in publicAxes:
             axesMap[name] = name
+        elif name in fvarTags:
+            axesMap[name] = name
         else:
             axesMap[name] = "%04d" % i
             i += 1
