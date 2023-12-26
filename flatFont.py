@@ -101,6 +101,7 @@ async def buildFlatFont(rcjkfont, glyphs):
     fbVariations = {}
     glyphRecordings = {}
     for glyph in charGlyphs.values():
+        print("Processing flat glyph", glyph.name)
         fbGlyphs[glyph.name], fbVariations[glyph.name] = await buildFlatGlyph(
             rcjkfont, glyph
         )

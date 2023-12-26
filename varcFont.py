@@ -88,7 +88,7 @@ async def buildVarcFont(rcjkfont, glyphs):
     varStoreBuilder = OnlineMultiVarStoreBuilder(fvarTags)
 
     for glyphName, glyph in glyphs.items():
-        print("Processing glyph", glyphName)
+        print("Processing varc glyph", glyphName)
         glyph_masters = glyphMasters(glyph)
 
         axes = {
