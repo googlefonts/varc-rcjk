@@ -99,6 +99,7 @@ async def buildVarcFont(rcjkfont, glyphs):
             axis.name: (axis.minValue, axis.defaultValue, axis.maxValue)
             for axis in glyph.axes
         })
+        axesNames = set(axes.keys())
         axesMap = {}
         i = 0
         for name in sorted(axes.keys()):
@@ -107,6 +108,8 @@ async def buildVarcFont(rcjkfont, glyphs):
             elif name in fvarTags:
                 axesMap[name] = name
             else:
+                while "%04d" % i in axesNames:
+                    i += 1
                 axesMap[name] = "%04d" % i
                 i += 1
 
