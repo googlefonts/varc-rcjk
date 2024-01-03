@@ -113,22 +113,25 @@ async def buildVarcFont(rcjkfont, glyphs):
                 axesMap[name] = "%04d" % i
                 i += 1
 
-        if not glyph_masters[()].glyph.components:
-            # Simple glyph...
+        if glyph_masters[()].glyph.path.coordinates:
+            # Glyph has outline...
 
             fbGlyphs[glyph.name], fbVariations[glyph.name] = await buildFlatGlyph(
                 rcjkfont, glyph, axesMap
             )
-            continue
 
         # VarComposite glyph...
-
-        fbGlyphs[glyph.name] = Glyph()
-
-        componentAnalysis = analyzeComponents(glyph_masters, glyphs, axes, publicAxes)
+        if not glyph_masters[()].glyph.components:
+            continue
 
         glyphRecord = varcGlyphs[glyph.name] = ot.VarCompositeGlyph()
         componentRecords = glyphRecord.components
+
+        if not glyph_masters[()].glyph.path.coordinates:
+            fbGlyphs[glyph.name] = Glyph()
+
+        componentAnalysis = analyzeComponents(glyph_masters, glyphs, axes, publicAxes)
+
 
         layer = next(iter(glyph_masters.values()))  # Default master
         assert len(layer.glyph.components) == len(componentAnalysis), (
@@ -208,6 +211,13 @@ async def buildVarcFont(rcjkfont, glyphs):
             rec.axisValues = tuple(axisValues)
             rec.transform.scaleX = rec.transform.scaleY = 0
             rec.applyTransformDeltas(transformBase)
+
+        if glyph_masters[()].glyph.path.coordinates:
+            # Add a component for the outline...
+            component = ot.VarComponent()
+            component.flags = 0
+            component.glyphName = glyph.name
+            componentRecords.append(component)
 
     # Reorder axisIndices such that the more used ones come first
     # Count users first.
