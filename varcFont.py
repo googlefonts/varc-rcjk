@@ -113,7 +113,7 @@ async def buildVarcFont(rcjkfont, glyphs):
                 axesMap[name] = "%04d" % i
                 i += 1
 
-        if glyph_masters[()].glyph.path.coordinates:
+        if glyph_masters[()].glyph.path.coordinates or not glyph_masters[()].glyph.components:
             # Glyph has outline...
 
             fbGlyphs[glyph.name], fbVariations[glyph.name] = await buildFlatGlyph(
