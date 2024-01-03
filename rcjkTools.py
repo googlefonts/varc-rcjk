@@ -11,6 +11,8 @@ def glyphMasters(glyph):
     for source in glyph.sources:
         if source.inactive:
             continue
+        if not source.customData["fontra.development.status"]:
+            continue
         locationTuple = tuplifyLocation(source.location)
         assert locationTuple not in masters, locationTuple
         masters[locationTuple] = glyph.layers[source.layerName]
