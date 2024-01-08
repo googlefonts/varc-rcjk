@@ -20,9 +20,8 @@ async def closureGlyph(rcjkfont, glyphs, glyph):
     layer = glyph.layers["foreground"]
     for component in layer.glyph.components:
         if component.name not in glyphs:
-            try:
-                componentGlyph = await rcjkfont.getGlyph(component.name)
-            except KeyError:
+            componentGlyph = await rcjkfont.getGlyph(component.name)
+            if componentGlyph is None:
                 print("Missing component", component.name, "in glyph", glyph.name)
                 continue
             glyphs[component.name] = componentGlyph
