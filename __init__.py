@@ -32,13 +32,10 @@ async def main(args):
 
     glyphs = {}
     for glyphname in list(revCmap.keys())[:count] if not glyphset else glyphset:
+        print("Loading glyph", glyphname)
         glyph = await rcjkfont.getGlyph(glyphname)
         glyph_masters = glyphMasters(glyph)
         glyphs[glyphname] = glyph
-
-        # Check that glyph does not mix contours and components
-        for layer in glyph_masters.values():
-            assert not layer.glyph.path.coordinates or not layer.glyph.components
 
     await buildVarcFont(rcjkfont, glyphs)
     await buildFlatFont(rcjkfont, glyphs)

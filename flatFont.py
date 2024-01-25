@@ -1,4 +1,4 @@
-from font import createFontBuilder, fixLsb
+from font import createFontBuilder, fixLsb, mapTuple
 from decompose import decomposeLayer
 from rcjkTools import *
 
@@ -14,6 +14,9 @@ from functools import partial
 
 
 def replayCommandsThroughCu2QuMultiPen(commands, cu2quPen):
+    commands = list(commands)
+    firstCommand = commands[0]
+    assert all(len(command) == len(firstCommand) for command in commands)
     for ops in zip(*commands):
         opNames = [op[0] for op in ops]
         opArgs = [op[1] for op in ops]
@@ -27,16 +30,24 @@ def replayCommandsThroughCu2QuMultiPen(commands, cu2quPen):
 
 async def buildFlatGlyph(rcjkfont, glyph, axesNameToTag=None):
     axes = {
-        axis.name: (axis.minValue, axis.defaultValue, axis.maxValue)
-        for axis in glyph.axes
+        axis.name: mapTuple(
+            (axis.minValue, axis.defaultValue, axis.maxValue), axis.mapping
+        )
+        for axis in await rcjkfont.getGlobalAxes()
     }
+    axes.update(
+        {
+            axis.name: (axis.minValue, axis.defaultValue, axis.maxValue)
+            for axis in glyph.axes
+        }
+    )
 
     glyph_masters = glyphMasters(glyph)
 
     shapes = {}
     for loc, layer in glyph_masters.items():
         loc = dictifyLocation(loc)
-        loc = normalizeLocation(loc, axes)
+        loc = normalizeLocation(loc, axes, validate=True)
         loc = {k: v for k, v in loc.items() if v != 0}
         loc = tuplifyLocation(loc)
 
@@ -46,11 +57,13 @@ async def buildFlatGlyph(rcjkfont, glyph, axesNameToTag=None):
         rppen.value = (await decomposeLayer(layer, rcjkfont)).value
         rppen.replay(pspen)
 
+        assert loc not in shapes, loc
         shapes[loc] = rspen.value
 
     pens = [TTGlyphPen() for i in range(len(glyph_masters))]
     cu2quPen = Cu2QuMultiPen(pens, 1)
     # Pass all shapes through Cu2QuMultiPen
+    assert len(shapes) == len(pens)
     replayCommandsThroughCu2QuMultiPen(shapes.values(), cu2quPen)
     pens = [pen.glyph() for pen in pens]
 
@@ -65,7 +78,7 @@ async def buildFlatGlyph(rcjkfont, glyph, axesNameToTag=None):
     masterCoords = [pen.coordinates for pen in pens]
 
     masterLocs = list(dictifyLocation(l) for l in glyph_masters.keys())
-    masterLocs = [normalizeLocation(m, axes) for m in masterLocs]
+    masterLocs = [normalizeLocation(m, axes, validate=True) for m in masterLocs]
 
     model = VariationModel(masterLocs, list(axes.keys()))
 
@@ -77,7 +90,10 @@ async def buildFlatGlyph(rcjkfont, glyph, axesNameToTag=None):
     for delta, support in zip(deltas[1:], supports[1:]):
         delta.extend([(0, 0), (0, 0), (0, 0), (0, 0)])  # TODO Phantom points
         if axesNameToTag is not None:
-            support = {axesNameToTag[k]: v for k, v in support.items()}
+            support = {
+                axesNameToTag[k] if k in axesNameToTag else k: v
+                for k, v in support.items()
+            }
         tv = TupleVariation(support, delta)
         fbVariations.append(tv)
 
@@ -96,8 +112,11 @@ async def buildFlatFont(rcjkfont, glyphs):
     fbVariations = {}
     glyphRecordings = {}
     for glyph in charGlyphs.values():
+        print("Processing flat glyph", glyph.name)
         fbGlyphs[glyph.name], fbVariations[glyph.name] = await buildFlatGlyph(
-            rcjkfont, glyph
+            rcjkfont,
+            glyph,
+            {axis["name"]: axis["tag"] for axis in rcjkfont.designspace["axes"]},
         )
 
     fvarAxes = []
@@ -116,4 +135,5 @@ async def buildFlatFont(rcjkfont, glyphs):
     fb.setupGlyf(fbGlyphs, validateGlyphFormat=False)
     fb.setupGvar(fbVariations)
     fixLsb(fb)
+    print("Saving flat.ttf")
     fb.save("flat.ttf")
