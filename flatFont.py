@@ -1,4 +1,4 @@
-from font import createFontBuilder, fixLsb
+from font import createFontBuilder, fixLsb, mapTuple
 from decompose import decomposeLayer
 from rcjkTools import *
 
@@ -30,13 +30,17 @@ def replayCommandsThroughCu2QuMultiPen(commands, cu2quPen):
 
 async def buildFlatGlyph(rcjkfont, glyph, axesNameToTag=None):
     axes = {
-            axis["name"]: (axis["minValue"], axis["defaultValue"], axis["maxValue"])
-            for axis in rcjkfont.designspace["axes"]
+        axis.name: mapTuple(
+            (axis.minValue, axis.defaultValue, axis.maxValue), axis.mapping
+        )
+        for axis in await rcjkfont.getGlobalAxes()
     }
-    axes.update({
-        axis.name: (axis.minValue, axis.defaultValue, axis.maxValue)
-        for axis in glyph.axes
-    })
+    axes.update(
+        {
+            axis.name: (axis.minValue, axis.defaultValue, axis.maxValue)
+            for axis in glyph.axes
+        }
+    )
 
     glyph_masters = glyphMasters(glyph)
 
@@ -86,7 +90,10 @@ async def buildFlatGlyph(rcjkfont, glyph, axesNameToTag=None):
     for delta, support in zip(deltas[1:], supports[1:]):
         delta.extend([(0, 0), (0, 0), (0, 0), (0, 0)])  # TODO Phantom points
         if axesNameToTag is not None:
-            support = {axesNameToTag[k] if k in axesNameToTag else k: v for k, v in support.items()}
+            support = {
+                axesNameToTag[k] if k in axesNameToTag else k: v
+                for k, v in support.items()
+            }
         tv = TupleVariation(support, delta)
         fbVariations.append(tv)
 
@@ -107,8 +114,9 @@ async def buildFlatFont(rcjkfont, glyphs):
     for glyph in charGlyphs.values():
         print("Processing flat glyph", glyph.name)
         fbGlyphs[glyph.name], fbVariations[glyph.name] = await buildFlatGlyph(
-            rcjkfont, glyph,
-            {axis["name"]: axis["tag"] for axis in rcjkfont.designspace["axes"]}
+            rcjkfont,
+            glyph,
+            {axis["name"]: axis["tag"] for axis in rcjkfont.designspace["axes"]},
         )
 
     fvarAxes = []

@@ -49,6 +49,7 @@ def setupFvarAxes(rcjkfont, glyphs):
     fvarNames = {axis[4] for axis in fvarAxes}
 
     maxAxes = 0
+
     for glyph in glyphs.values():
         axes = {
             axis.name: (axis.minValue, axis.defaultValue, axis.maxValue)
@@ -95,13 +96,17 @@ async def buildVarcFont(rcjkfont, glyphs):
         glyph_masters = glyphMasters(glyph)
 
         axes = {
-                axis["name"]: (axis["minValue"], axis["defaultValue"], axis["maxValue"])
-                for axis in rcjkfont.designspace["axes"]
+            axis.name: mapTuple(
+                (axis.minValue, axis.defaultValue, axis.maxValue), axis.mapping
+            )
+            for axis in await rcjkfont.getGlobalAxes()
         }
-        axes.update({
-            axis.name: (axis.minValue, axis.defaultValue, axis.maxValue)
-            for axis in glyph.axes
-        })
+        axes.update(
+            {
+                axis.name: (axis.minValue, axis.defaultValue, axis.maxValue)
+                for axis in glyph.axes
+            }
+        )
         axesNames = set(axes.keys())
         axesMap = {}
         i = 0
@@ -116,7 +121,10 @@ async def buildVarcFont(rcjkfont, glyphs):
                 axesMap[name] = "%04d" % i
                 i += 1
 
-        if glyph_masters[()].glyph.path.coordinates or not glyph_masters[()].glyph.components:
+        if (
+            glyph_masters[()].glyph.path.coordinates
+            or not glyph_masters[()].glyph.components
+        ):
             # Glyph has outline...
 
             fbGlyphs[glyph.name], fbVariations[glyph.name] = await buildFlatGlyph(
@@ -134,7 +142,6 @@ async def buildVarcFont(rcjkfont, glyphs):
             fbGlyphs[glyph.name] = Glyph()
 
         componentAnalysis = analyzeComponents(glyph_masters, glyphs, axes, publicAxes)
-
 
         layer = next(iter(glyph_masters.values()))  # Default master
         assert len(layer.glyph.components) == len(componentAnalysis), (

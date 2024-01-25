@@ -1,4 +1,5 @@
 from fontTools.fontBuilder import FontBuilder
+from fontTools.varLib.models import piecewiseLinearMap
 
 
 async def createFontBuilder(rcjkfont, family_name, style, glyphs, glyphDataFormat=0):
@@ -62,3 +63,8 @@ def recalcSimpleGlyphBounds(fb):
         glyph = glyf.glyphs[glyphname]
         if not hasattr(glyph, "data"):
             glyph.recalcBounds(glyf)
+
+
+def mapTuple(t, mapping):
+    mapping = dict(mapping)
+    return tuple(piecewiseLinearMap(v, mapping) for v in t)
