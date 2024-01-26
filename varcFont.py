@@ -9,6 +9,7 @@ from fontTools.varLib.models import normalizeLocation, VariationModel
 from fontTools.varLib.multiVarStore import OnlineMultiVarStoreBuilder
 import fontTools.ttLib.tables.otTables as ot
 from fontTools.misc.vector import Vector
+from fontTools.misc.fixedTools import fixedToFloat as fi2fl
 from functools import partial
 from collections import defaultdict
 import struct
@@ -213,7 +214,7 @@ async def buildVarcFont(rcjkfont, glyphs):
             axisValues, rec.axisValuesVarIndex = varStoreBuilder.storeMasters(
                 [Vector(l) for l in allAxisValueMasterValues], round=Vector.__round__
             )
-            rec.axisValues = tuple(axisValues)
+            rec.axisValues = tuple(fi2fl(axisValues, 14) for axisValues in axisValues)
 
             transformBase, rec.transformVarIndex = varStoreBuilder.storeMasters(
                 [Vector(l) for l in allTransformMasterValues], round=Vector.__round__
