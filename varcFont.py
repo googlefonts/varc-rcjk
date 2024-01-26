@@ -218,7 +218,6 @@ async def buildVarcFont(rcjkfont, glyphs):
             transformBase, rec.transformVarIndex = varStoreBuilder.storeMasters(
                 [Vector(l) for l in allTransformMasterValues], round=Vector.__round__
             )
-            rec.axisValues = tuple(axisValues)
             rec.transform.scaleX = rec.transform.scaleY = 0
             rec.applyTransformDeltas(transformBase)
 
