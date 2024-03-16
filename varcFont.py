@@ -260,7 +260,7 @@ async def buildVarcFont(rcjkfont, glyphs):
     varcTable.Version = 0x00010000
 
     coverage = varcTable.Coverage = ot.Coverage()
-    coverage.glyphs = [glyph for glyph in varcGlyphs.keys()]
+    coverage.glyphs = list(varcGlyphs.keys())
 
     varcTable.MultiVarStore = varStore
     varcTable.AxisIndicesList = axisIndices
