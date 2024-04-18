@@ -33,7 +33,7 @@ async def buildFlatGlyph(rcjkfont, glyph, axesNameToTag=None):
         axis.name: mapTuple(
             (axis.minValue, axis.defaultValue, axis.maxValue), axis.mapping
         )
-        for axis in await rcjkfont.getGlobalAxes()
+        for axis in (await rcjkfont.getAxes()).axes
     }
     axes.update(
         {
@@ -116,18 +116,18 @@ async def buildFlatFont(rcjkfont, glyphs):
         fbGlyphs[glyph.name], fbVariations[glyph.name] = await buildFlatGlyph(
             rcjkfont,
             glyph,
-            {axis["name"]: axis["tag"] for axis in rcjkfont.designspace["axes"]},
+            {axis.name: axis.tag for axis in (await rcjkfont.getAxes()).axes},
         )
 
     fvarAxes = []
-    for axis in rcjkfont.designspace["axes"]:
+    for axis in (await rcjkfont.getAxes()).axes:
         fvarAxes.append(
             (
-                axis["tag"],
-                axis["minValue"],
-                axis["defaultValue"],
-                axis["maxValue"],
-                axis["name"],
+                axis.tag,
+                axis.minValue,
+                axis.defaultValue,
+                axis.maxValue,
+                axis.name,
             )
         )
 

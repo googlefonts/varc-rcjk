@@ -15,7 +15,7 @@ async def decomposeGlyph(glyph, rcjkfont, location=(), trans=Identity):
         axis.name: mapTuple(
             (axis.minValue, axis.defaultValue, axis.maxValue), axis.mapping
         )
-        for axis in await rcjkfont.getGlobalAxes()
+        for axis in (await rcjkfont.getAxes()).axes
     }
     axes.update(
         {

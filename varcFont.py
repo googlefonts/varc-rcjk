@@ -34,16 +34,16 @@ async def closureGlyphs(rcjkfont, glyphs):
         await closureGlyph(rcjkfont, glyphs, glyph)
 
 
-def setupFvarAxes(rcjkfont, glyphs):
+async def setupFvarAxes(rcjkfont, glyphs):
     fvarAxes = []
-    for axis in rcjkfont.designspace["axes"]:
+    for axis in (await rcjkfont.getAxes()).axes:
         fvarAxes.append(
             (
-                axis["tag"],
-                axis["minValue"],
-                axis["defaultValue"],
-                axis["maxValue"],
-                axis["name"],
+                axis.tag,
+                axis.minValue,
+                axis.defaultValue,
+                axis.maxValue,
+                axis.name,
             )
         )
     fvarTags = {axis[0] for axis in fvarAxes}
@@ -72,9 +72,9 @@ async def buildVarcFont(rcjkfont, glyphs):
     await closureGlyphs(rcjkfont, glyphs)
 
     publicAxes = dict()
-    for axis in rcjkfont.designspace["axes"]:
-        publicAxes[axis["name"]] = axis["tag"]
-    fvarAxes = setupFvarAxes(rcjkfont, glyphs)
+    for axis in (await rcjkfont.getAxes()).axes:
+        publicAxes[axis.name] = axis.tag
+    fvarAxes = await setupFvarAxes(rcjkfont, glyphs)
     fvarTags = [axis[0] for axis in fvarAxes]
 
     fb = await createFontBuilder(rcjkfont, "rcjk", "varc", glyphs, glyphDataFormat=1)
@@ -100,7 +100,7 @@ async def buildVarcFont(rcjkfont, glyphs):
             axis.name: mapTuple(
                 (axis.minValue, axis.defaultValue, axis.maxValue), axis.mapping
             )
-            for axis in await rcjkfont.getGlobalAxes()
+            for axis in (await rcjkfont.getAxes()).axes
         }
         axes.update(
             {
