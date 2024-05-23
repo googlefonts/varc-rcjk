@@ -15,23 +15,14 @@ from fontra_rcjk.backend_fs import RCJKBackend
 async def main(args):
     print("Loading glyphs")
 
-    count = 10000000
-
     rcjk_path = args[0]
-    glyphset = None
-    if len(args) == 2:
-        try:
-            count = int(args[1])
-        except ValueError:
-            glyphset = args[1:]
-    else:
-        glyphset = args[1:]
+    glyphset = args[1:]
 
     rcjkfont = RCJKBackend.fromPath(rcjk_path)
     revCmap = await rcjkfont.getGlyphMap()
 
     glyphs = {}
-    for glyphname in list(revCmap.keys())[:count] if not glyphset else glyphset:
+    for glyphname in revCmap.keys() if not glyphset else glyphset:
         print("Loading glyph", glyphname)
         glyph = await rcjkfont.getGlyph(glyphname)
         glyph_masters = glyphMasters(glyph)
