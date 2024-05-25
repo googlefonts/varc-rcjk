@@ -15,31 +15,28 @@ from fontra_rcjk.backend_fs import RCJKBackend
 async def main(args):
     print("Loading glyphs")
 
-    count = 10000000
-
     rcjk_path = args[0]
-    glyphset = None
-    if len(args) == 2:
-        try:
-            count = int(args[1])
-        except ValueError:
-            glyphset = args[1:]
-    else:
-        glyphset = args[1:]
+    status = None
+    i = 1
+    if len(args) > i and args[i][0] == "-":
+        status = int(args[i][1:])
+        i += 1
+    glyphset = args[i:]
 
     rcjkfont = RCJKBackend.fromPath(rcjk_path)
     revCmap = await rcjkfont.getGlyphMap()
 
     glyphs = {}
-    for glyphname in list(revCmap.keys())[:count] if not glyphset else glyphset:
+    for glyphname in revCmap.keys() if not glyphset else glyphset:
         print("Loading glyph", glyphname)
         glyph = await rcjkfont.getGlyph(glyphname)
         glyph_masters = glyphMasters(glyph)
-        glyphs[glyphname] = glyph
+        if status is not None:
+            if not any(source.customData.get("fontra.development.status", status) == status for source in glyph.sources):
+                print("Skipping glyph", glyphname)
+                continue
 
-        # Check that glyph does not mix contours and components
-        for layer in glyph_masters.values():
-            assert not layer.glyph.path.coordinates or not layer.glyph.components
+        glyphs[glyphname] = glyph
 
     await buildVarcFont(rcjkfont, glyphs)
     await buildFlatFont(rcjkfont, glyphs)

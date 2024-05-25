@@ -1,10 +1,13 @@
 from fontTools.fontBuilder import FontBuilder
+from fontTools.varLib.models import piecewiseLinearMap
 
 
 async def createFontBuilder(rcjkfont, family_name, style, glyphs, glyphDataFormat=0):
     upem = await rcjkfont.getUnitsPerEm()
 
-    glyphOrder = [".notdef"] + list(glyphs.keys())
+    glyphOrder = list(glyphs.keys())
+    metrics = {}
+
     revCmap = await rcjkfont.getGlyphMap()
     cmap = {}
     for glyph in glyphs.values():
@@ -13,13 +16,16 @@ async def createFontBuilder(rcjkfont, family_name, style, glyphs, glyphDataForma
             # assert unicode not in cmap, (hex(unicode), glyphname, cmap[unicode])
             cmap[unicode] = glyph.name
 
-    metrics = {".notdef": (upem, 0)}
-    for glyphname in glyphOrder[1:]:
+    for glyphname in glyphOrder:
         glyph = await rcjkfont.getGlyph(glyphname)
         assert glyph.sources[0].name == "<default>"
         assert glyph.sources[0].layerName == "foreground"
         advance = glyph.layers["foreground"].glyph.xAdvance
         metrics[glyphname] = (max(advance, 0), 0)  # TODO lsb
+
+    if ".notdef" not in glyphOrder:
+        glyphOrder.insert(0, ".notdef")
+        metrics[".notdef"] = (upem, 0)
 
     nameStrings = dict(
         familyName=dict(en=family_name),
@@ -57,3 +63,8 @@ def recalcSimpleGlyphBounds(fb):
         glyph = glyf.glyphs[glyphname]
         if not hasattr(glyph, "data"):
             glyph.recalcBounds(glyf)
+
+
+def mapTuple(t, mapping):
+    mapping = dict(mapping)
+    return tuple(piecewiseLinearMap(v, mapping) for v in t)

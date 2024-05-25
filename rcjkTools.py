@@ -12,7 +12,7 @@ def glyphMasters(glyph):
         if source.inactive:
             continue
         locationTuple = tuplifyLocation(source.location)
-        assert locationTuple not in masters
+        assert locationTuple not in masters, locationTuple
         masters[locationTuple] = glyph.layers[source.layerName]
 
     return masters
