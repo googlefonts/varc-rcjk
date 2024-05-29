@@ -69,6 +69,7 @@ async def setupFvarAxes(rcjkfont, glyphs):
 async def buildVarcFont(rcjkfont, glyphs):
     print("Building varc.ttf")
 
+    glyphs = dict(glyphs)
     await closureGlyphs(rcjkfont, glyphs)
 
     publicAxes = dict()
