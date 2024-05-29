@@ -89,6 +89,10 @@ def analyzeComponents(glyph_masters, glyphs, glyphAxes, publicAxes):
 
     for masterLocationTuple, layer in glyph_masters.items():
         masterLocation = dictifyLocation(masterLocationTuple)
+        for axis in glyphAxes:
+            if axis not in masterLocation:
+                masterLocation[axis] = 0
+
         for i, component in enumerate(layer.glyph.components):
             ca = cas[i]
             t = component.transformation
@@ -117,10 +121,12 @@ def analyzeComponents(glyph_masters, glyphs, glyphAxes, publicAxes):
             loc = normalizeLocation(loc, allComponentAxes[i])
             for name in ca.coordinates:
                 c = loc.get(name, 0)
-                # Currently we don't have any optimizations using the reset flag.
-                # Just add it to both sets.
+
+                # Currently we don't have any logic to optimize using RESET_UNSPECIFIED_AXES
                 ca.coordinateHaveReset.add(name)
-                ca.coordinateHaveOverlay.add(name)
+
+                if not (name in masterLocation and c == masterLocation[name]):
+                    ca.coordinateHaveOverlay.add(name)
 
     for ca in cas:
         ca.coordinatesReset = len(ca.coordinateHaveReset) < len(
