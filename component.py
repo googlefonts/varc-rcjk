@@ -179,7 +179,7 @@ def getComponentMasters(
     for name in ca.coordinateHave:
         coord = coords.get(name, 0)
         if name not in axesMap:
-            continue # This happens with bad input data
+            continue  # This happens with bad input data
         i = fvarTags.index(axesMap[name])
         axisIndexMasters.append(i)
         axisValueMasters.append(fl2fi(coord, 14))

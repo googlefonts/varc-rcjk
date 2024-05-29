@@ -32,7 +32,10 @@ async def main(args):
         glyph = await rcjkfont.getGlyph(glyphname)
         glyph_masters = glyphMasters(glyph)
         if status is not None:
-            if not any(source.customData.get("fontra.development.status", status) == status for source in glyph.sources):
+            if not any(
+                source.customData.get("fontra.development.status", status) == status
+                for source in glyph.sources
+            ):
                 print("Skipping glyph", glyphname)
                 continue
 
