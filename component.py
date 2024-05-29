@@ -61,11 +61,29 @@ class ComponentAnalysis:
         return flags
 
 
+def _usesPublicAxes(componentGlyph, publicAxes, glyphs):
+
+    for axis in componentGlyph.axes:
+        if axis.name in publicAxes:
+            return True
+
+    glyph_masters = glyphMasters(componentGlyph)
+    layer = next(iter(glyph_masters.values()))
+    defaultComponents = layer.glyph.components
+
+    for component in defaultComponents:
+        if _usesPublicAxes(glyphs[component.name], publicAxes, glyphs):
+            return True
+
+    return False
+
+
 def analyzeComponents(glyph_masters, glyphs, glyphAxes, publicAxes):
     layer = next(iter(glyph_masters.values()))
     defaultComponents = layer.glyph.components
     defaultLocations = []
     allComponentAxes = []
+    allUsesPublicAxes = []
     for component in defaultComponents:
         loc = component.location
         componentAxes = {
@@ -75,6 +93,10 @@ def analyzeComponents(glyph_masters, glyphs, glyphAxes, publicAxes):
         allComponentAxes.append(componentAxes)
         loc = normalizeLocation(loc, componentAxes)
         defaultLocations.append(loc)
+        usesPublicAxes = any(axis in publicAxes for axis in loc) or _usesPublicAxes(
+            glyphs[component.name], publicAxes, glyphs
+        )
+        allUsesPublicAxes.append(usesPublicAxes)
 
     cas = []
     for component in layer.glyph.components:
@@ -122,8 +144,8 @@ def analyzeComponents(glyph_masters, glyphs, glyphAxes, publicAxes):
             for name in ca.coordinates:
                 c = loc.get(name, 0)
 
-                # Currently we don't have any logic to optimize using RESET_UNSPECIFIED_AXES
-                ca.coordinateHaveReset.add(name)
+                if allUsesPublicAxes[i] or c:
+                    ca.coordinateHaveReset.add(name)
 
                 if not (name in masterLocation and c == masterLocation[name]):
                     ca.coordinateHaveOverlay.add(name)
