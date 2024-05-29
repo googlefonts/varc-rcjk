@@ -117,15 +117,13 @@ def analyzeComponents(glyph_masters, glyphs, glyphAxes, publicAxes):
             loc = normalizeLocation(loc, allComponentAxes[i])
             for name in ca.coordinates:
                 c = loc.get(name, 0)
-                if c:
-                    ca.coordinateHaveReset.add(name)
-                if c != masterLocation.get(name, 0) or (
-                    name in publicAxes and name not in glyphAxes
-                ):
-                    ca.coordinateHaveOverlay.add(name)
+                # Currently we don't have any optimizations using the reset flag.
+                # Just add it to both sets.
+                ca.coordinateHaveReset.add(name)
+                ca.coordinateHaveOverlay.add(name)
 
     for ca in cas:
-        ca.coordinatesReset = len(ca.coordinateHaveReset) <= len(
+        ca.coordinatesReset = len(ca.coordinateHaveReset) < len(
             ca.coordinateHaveOverlay
         )
         ca.coordinateHave = (
@@ -138,7 +136,7 @@ def analyzeComponents(glyph_masters, glyphs, glyphAxes, publicAxes):
             loc = component.location
             loc = normalizeLocation(loc, allComponentAxes[i])
             for name in ca.coordinates:
-                # XXX Is this logic correct for coordinatesReset?
+                # XXX Is this logic correct for coordinatesHaveReset?
                 if name in ca.coordinateHave and loc.get(name, 0) != defaultLocations[
                     i
                 ].get(name, 0):
