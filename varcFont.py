@@ -12,6 +12,7 @@ from fontTools.misc.vector import Vector
 from fontTools.misc.fixedTools import fixedToFloat as fi2fl
 from functools import partial
 from collections import defaultdict
+from fontTools.designspaceLib import AxisDescriptor
 import struct
 
 
@@ -38,16 +39,16 @@ async def setupFvarAxes(rcjkfont, glyphs):
     fvarAxes = []
     for axis in (await rcjkfont.getAxes()).axes:
         fvarAxes.append(
-            (
-                axis.tag,
-                axis.minValue,
-                axis.defaultValue,
-                axis.maxValue,
-                axis.name,
+            AxisDescriptor(
+                tag=axis.tag,
+                minimum=axis.minValue,
+                default=axis.defaultValue,
+                maximum=axis.maxValue,
+                name=axis.name,
             )
         )
-    fvarTags = {axis[0] for axis in fvarAxes}
-    fvarNames = {axis[4] for axis in fvarAxes}
+    fvarTags = {axis.tag for axis in fvarAxes}
+    fvarNames = {axis.name for axis in fvarAxes}
 
     maxAxes = 0
 
@@ -61,7 +62,16 @@ async def setupFvarAxes(rcjkfont, glyphs):
 
     for i in range(maxAxes):
         tag = "%04d" % i
-        fvarAxes.append((tag, -1, 0, 1, tag))
+        fvarAxes.append(
+            AxisDescriptor(
+                tag=tag,
+                minimum=-1,
+                default=0,
+                maximum=1,
+                name=tag,
+                hidden=True,
+            )
+        )
 
     return fvarAxes
 
@@ -76,7 +86,7 @@ async def buildVarcFont(rcjkfont, glyphs):
     for axis in (await rcjkfont.getAxes()).axes:
         publicAxes[axis.name] = axis.tag
     fvarAxes = await setupFvarAxes(rcjkfont, glyphs)
-    fvarTags = [axis[0] for axis in fvarAxes]
+    fvarTags = [axis.tag for axis in fvarAxes]
 
     fb = await createFontBuilder(rcjkfont, "rcjk", "varc", glyphs, glyphDataFormat=1)
     reverseGlyphMap = fb.font.getReverseGlyphMap()
