@@ -77,7 +77,7 @@ async def setupFvarAxes(rcjkfont, glyphs):
 
 
 async def buildVarcFont(rcjkfont, glyphs):
-    print("Building varc.ttf")
+    print("Building hvac.ttf")
 
     glyphs = dict(glyphs)
     await closureGlyphs(rcjkfont, glyphs)
@@ -279,9 +279,9 @@ async def buildVarcFont(rcjkfont, glyphs):
 
     fb.setupFvar(fvarAxes, [])
     fb.setupGlyf(fbGlyphs, validateGlyphFormat=False)
-    fb.setupGvar(fbVariations)
+    fb.setupHVAC(fbVariations)
     recalcSimpleGlyphBounds(fb)
     fixLsb(fb)
     fb.font["VARC"] = varc
-    print("Saving varc.ttf")
-    fb.save("varc.ttf")
+    print("Saving hvac.ttf")
+    fb.save("hvac.ttf")
