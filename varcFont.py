@@ -101,7 +101,7 @@ async def buildVarcFont(rcjkfont, glyphs):
     transformList = []
     transformMap = {}
 
-    varStoreBuilder = OnlineMultiVarStoreBuilder(fvarTags)
+    varStoreBuilder = OnlineMultiVarStoreBuilder(fvarTags, varDataFormat=2)
 
     for glyphName, glyph in glyphs.items():
         print("Processing varc glyph", glyphName)
