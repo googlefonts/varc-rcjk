@@ -13,7 +13,7 @@ from fontra_rcjk.backend_fs import RCJKBackend
 
 
 async def main(args):
-    print("Loading glyphs")
+    #print("Loading glyphs")
 
     rcjk_path = args[0]
     status = None
@@ -28,7 +28,7 @@ async def main(args):
 
     glyphs = {}
     for glyphname in revCmap.keys() if not glyphset else glyphset:
-        print("Loading glyph", glyphname)
+        #print("Loading glyph", glyphname)
         glyph = await rcjkfont.getGlyph(glyphname)
         glyph_masters = glyphMasters(glyph)
         if status is not None:
@@ -36,13 +36,13 @@ async def main(args):
                 source.customData.get("fontra.development.status", status) == status
                 for source in glyph.sources
             ):
-                print("Skipping glyph", glyphname)
+                #print("Skipping glyph", glyphname)
                 continue
 
         glyphs[glyphname] = glyph
 
     await buildVarcFont(rcjkfont, glyphs)
-    await buildFlatFont(rcjkfont, glyphs)
+    #await buildFlatFont(rcjkfont, glyphs)
 
 
 if __name__ == "__main__":

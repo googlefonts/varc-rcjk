@@ -14,6 +14,7 @@ from functools import partial
 from collections import defaultdict
 from fontTools.designspaceLib import AxisDescriptor
 import struct
+from os import getenv
 
 
 async def closureGlyph(rcjkfont, glyphs, glyph):
@@ -77,7 +78,7 @@ async def setupFvarAxes(rcjkfont, glyphs):
 
 
 async def buildVarcFont(rcjkfont, glyphs):
-    print("Building hvac.ttf")
+    print("Building out.ttf")
 
     glyphs = dict(glyphs)
     await closureGlyphs(rcjkfont, glyphs)
@@ -101,10 +102,18 @@ async def buildVarcFont(rcjkfont, glyphs):
     transformList = []
     transformMap = {}
 
-    varStoreBuilder = OnlineMultiVarStoreBuilder(fvarTags, varDataFormat=2)
+    MIVS = getenv("MIVS")
+    assert MIVS
+    if MIVS == "quo":
+        varDataFormat = 1
+    elif MIVS == "float":
+        varDataFormat = 2
+    else:
+        assert False, MIVS
+    varStoreBuilder = OnlineMultiVarStoreBuilder(fvarTags, varDataFormat=varDataFormat)
 
     for glyphName, glyph in glyphs.items():
-        print("Processing varc glyph", glyphName)
+        #print("Processing varc glyph", glyphName)
         glyph_masters = glyphMasters(glyph)
 
         axes = {
@@ -259,7 +268,7 @@ async def buildVarcFont(rcjkfont, glyphs):
 
     axisIndices = ot.AxisIndicesList()
     axisIndices.Item = axisIndicesList
-    print("AxisIndicesList:", len(axisIndicesList))
+    #print("AxisIndicesList:", len(axisIndicesList))
 
     varStore = varStoreBuilder.finish()
 
@@ -279,9 +288,18 @@ async def buildVarcFont(rcjkfont, glyphs):
 
     fb.setupFvar(fvarAxes, [])
     fb.setupGlyf(fbGlyphs, validateGlyphFormat=False)
-    fb.setupHVAC(fbVariations)
+
+    VARS = getenv("VARS")
+    assert VARS
+    if VARS == "quo":
+        fb.setupGvar(fbVariations)
+    elif VARS == "float":
+        fb.setupHVAC(fbVariations)
+    else:
+        assert False, VARS
+
     recalcSimpleGlyphBounds(fb)
     fixLsb(fb)
     fb.font["VARC"] = varc
-    print("Saving hvac.ttf")
-    fb.save("hvac.ttf")
+    print("Saving out.ttf")
+    fb.save("out.ttf")
