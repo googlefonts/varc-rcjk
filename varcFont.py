@@ -209,7 +209,9 @@ async def buildVarcFont(rcjkfont, glyphs):
             allTransformMasterValues = tuple(allTransformMasterValues)
 
             axisIndexMasterValues = allAxisIndexMasterValues[0]
-            assert all(axisIndexMasterValues == m for m in allAxisIndexMasterValues), allAxisIndexMasterValues
+            assert all(
+                axisIndexMasterValues == m for m in allAxisIndexMasterValues
+            ), allAxisIndexMasterValues
             rec.numAxes = len(axisIndexMasterValues)
             if axisIndexMasterValues:
                 if axisIndexMasterValues in axisIndicesMap:
