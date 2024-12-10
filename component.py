@@ -116,6 +116,10 @@ def analyzeComponents(glyph_masters, glyphs, glyphAxes, publicAxes):
                 masterLocation[axis] = 0
 
         for i, component in enumerate(layer.glyph.components):
+            assert component.name == defaultComponents[i].name, (
+                component.name,
+                defaultComponents[i].name,
+            )
             ca = cas[i]
             t = component.transformation
             if otRound(t.translateX):
