@@ -100,7 +100,7 @@ async def buildFlatGlyph(rcjkfont, glyph, axesNameToTag=None):
     return fbGlyph, fbVariations
 
 
-async def buildFlatFont(rcjkfont, glyphs):
+async def buildFlatFont(rcjkfont, glyphs, optimizeSpeed=False):
     print("Building flat.ttf")
 
     revCmap = await rcjkfont.getGlyphMap()
@@ -135,5 +135,6 @@ async def buildFlatFont(rcjkfont, glyphs):
     fb.setupGlyf(fbGlyphs, validateGlyphFormat=False)
     fb.setupGvar(fbVariations)
     fixLsb(fb)
+    fb.font.cfg.set("fontTools.ttLib:OPTIMIZE_FONT_SPEED", optimizeSpeed)
     print("Saving flat.ttf")
     fb.save("flat.ttf")

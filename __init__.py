@@ -57,7 +57,7 @@ async def main(args):
         glyphs[glyphname] = glyph
 
     await buildVarcFont(rcjkfont, glyphs, optimizeSpeed)
-    await buildFlatFont(rcjkfont, glyphs)
+    await buildFlatFont(rcjkfont, glyphs, optimizeSpeed)
 
 
 if __name__ == "__main__":
