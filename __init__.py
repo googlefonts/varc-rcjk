@@ -15,9 +15,14 @@ from fontra_rcjk.backend_fs import RCJKBackend
 async def main(args):
     print("Loading glyphs")
 
+    optimizeSpeed = False
+
     rcjk_path = args[0]
     status = None
     i = 1
+    if len(args) > i and args[i] == "--optimize-speed":
+        optimizeSpeed = True
+        i += 1
     if len(args) > i and args[i][0] == "-":
         status = int(args[i][1:])
         i += 1
@@ -41,7 +46,7 @@ async def main(args):
 
         glyphs[glyphname] = glyph
 
-    await buildVarcFont(rcjkfont, glyphs)
+    await buildVarcFont(rcjkfont, glyphs, optimizeSpeed)
     await buildFlatFont(rcjkfont, glyphs)
 
 

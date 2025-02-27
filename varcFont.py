@@ -76,7 +76,7 @@ async def setupFvarAxes(rcjkfont, glyphs):
     return fvarAxes
 
 
-async def buildVarcFont(rcjkfont, glyphs):
+async def buildVarcFont(rcjkfont, glyphs, optimizeSpeed=False):
     print("Building varc.ttf")
 
     glyphs = dict(glyphs)
@@ -285,5 +285,6 @@ async def buildVarcFont(rcjkfont, glyphs):
     recalcSimpleGlyphBounds(fb)
     fixLsb(fb)
     fb.font["VARC"] = varc
+    fb.font.cfg.set("fontTools.ttLib:OPTIMIZE_FONT_SPEED", optimizeSpeed)
     print("Saving varc.ttf")
     fb.save("varc.ttf")
