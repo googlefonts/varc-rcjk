@@ -21,7 +21,7 @@ async def main(args):
         "glyphs", type=str, nargs="*", help="List of glyphs to build (default: all)"
     )
     parser.add_argument(
-        "--optimize-speed",
+        "--optimize-font-speed",
         action="store_true",
         help="Optimize the font for speed (default: False)",
     )
@@ -32,7 +32,7 @@ async def main(args):
     )
     args = parser.parse_args(args)
 
-    optimizeSpeed = args.optimize_speed or False
+    optimizeSpeed = args.optimize_font_speed or False
 
     rcjk_path = args.rcjk_path
     status = args.status
