@@ -15,18 +15,28 @@ from fontra_rcjk.backend_fs import RCJKBackend
 async def main(args):
     print("Loading glyphs")
 
-    optimizeSpeed = False
+    parser = argparse.ArgumentParser(description="Build a fontra font")
+    parser.add_argument("rcjk_path", type=str, help="Path to the RCJK font")
+    parser.add_argument(
+        "glyphs", type=str, nargs="*", help="List of glyphs to build (default: all)"
+    )
+    parser.add_argument(
+        "--optimize-speed",
+        action="store_true",
+        help="Optimize the font for speed (default: False)",
+    )
+    parser.add_argument(
+        "--status",
+        type=int,
+        help="Only build glyphs with the specified status (default: all)",
+    )
+    args = parser.parse_args(args)
 
-    rcjk_path = args[0]
-    status = None
-    i = 1
-    if len(args) > i and args[i] == "--optimize-speed":
-        optimizeSpeed = True
-        i += 1
-    if len(args) > i and args[i][0] == "-":
-        status = int(args[i][1:])
-        i += 1
-    glyphset = args[i:]
+    optimizeSpeed = args.optimize_speed or False
+
+    rcjk_path = args.rcjk_path
+    status = args.status
+    glyphset = args.glyphs
 
     rcjkfont = RCJKBackend.fromPath(rcjk_path)
     revCmap = await rcjkfont.getGlyphMap()
