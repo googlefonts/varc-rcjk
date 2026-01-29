@@ -30,6 +30,11 @@ async def main(args):
         type=int,
         help="Only build glyphs with the specified status (default: all)",
     )
+    parser.add_argument(
+        "-n",
+        type=int,
+        help="Only build the first n eligible glyphs",
+    )
     args = parser.parse_args(args)
 
     optimizeSpeed = args.optimize_font_speed or False
@@ -42,7 +47,11 @@ async def main(args):
     revCmap = await rcjkfont.getGlyphMap()
 
     glyphs = {}
-    for glyphname in revCmap.keys() if not glyphset else glyphset:
+    glyphset = list(revCmap.keys() if not glyphset else glyphset)
+    count = 0
+    if args.n is None:
+        args.n = len(glyphset)
+    for glyphname in glyphset:
         print("Loading glyph", glyphname)
         glyph = await rcjkfont.getGlyph(glyphname)
         glyph_masters = glyphMasters(glyph)
@@ -54,6 +63,9 @@ async def main(args):
                 print("Skipping glyph", glyphname)
                 continue
 
+        count += 1
+        if count > args.n:
+            break
         glyphs[glyphname] = glyph
 
     await buildVarcFont(rcjkfont, glyphs, optimizeSpeed)
