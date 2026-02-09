@@ -186,14 +186,17 @@ def getComponentMasters(
         axis.name: (axis.minValue, axis.defaultValue, axis.maxValue)
         for axis in componentGlyph.axes
     }
+    axesNames = set(componentAxes.keys())
     axesMap = {}
     i = 0
     for name in sorted(componentAxes.keys()):
         if name in publicAxes:
-            axesMap[name] = name
+            axesMap[name] = publicAxes[name]
         elif name in fvarTags:
             axesMap[name] = name
         else:
+            while "%04d" % i in axesNames:
+                i += 1
             axesMap[name] = "%04d" % i
             i += 1
 
